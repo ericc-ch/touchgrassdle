@@ -12,3 +12,4 @@ Touchgrassdle is a daily hidden-prompt photo game (see `photo-hunt.md`, the sour
 - Preset: base-nova (`base` library, lucide icons), Tailwind v4 CSS variables theme in `src/index.css`, `components.json` at root.
 - Skill installed at `.agents/skills/shadcn`. Use the registry for components: `pnpm dlx shadcn@latest add <names> -y` (works directly; the CLI detects pnpm via `pnpm-lock.yaml`).
 - `cn` is the npm `cn` package (not `@/lib/utils`).
+- Theming: semantic tokens scoped under `[data-theme="light"]` / `[data-theme="dark"]` in `src/index.css`; logic in `src/theme/` (Effect Schema parsers + React provider). New presets = new token block + option in `ThemeSwitch`.
