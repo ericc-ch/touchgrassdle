@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import type { DayState } from "@/game/state.ts"
+import { useTheme } from "@/theme/provider.tsx"
 import { temperatureStyle } from "./temperature-styles.ts"
 
 export interface GuessListProps {
@@ -11,6 +12,8 @@ export interface GuessListProps {
 
 /** Scored guesses, newest last, each with its photo, temp, and clue. */
 export function GuessList({ day, thumbnails }: GuessListProps) {
+  const { contrast } = useTheme()
+  const high = contrast === "high"
   if (day.guesses.length === 0) {
     return (
       <p className="text-center text-sm text-muted-foreground">
@@ -21,7 +24,7 @@ export function GuessList({ day, thumbnails }: GuessListProps) {
   return (
     <ol className="flex w-full flex-col gap-3">
       {day.guesses.map((guess, index) => {
-        const style = temperatureStyle(guess.temperature)
+        const style = temperatureStyle(guess.temperature, high)
         const thumbnail = thumbnails[index]
         return (
           <li key={`${guess.takenAt}-${index}`}>

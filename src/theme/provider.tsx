@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
+import { CONTRAST_STORAGE_KEY, parseContrast, type ContrastMode } from "./contrast.ts"
 import {
   STORAGE_KEY,
   parsePreference,
@@ -11,6 +12,8 @@ interface ThemeContextValue {
   readonly preference: ThemePreference
   readonly effective: EffectiveTheme
   readonly setPreference: (preference: ThemePreference) => void
+  readonly contrast: ContrastMode
+  readonly setContrast: (contrast: ContrastMode) => void
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null)
@@ -23,9 +26,18 @@ function readStoredPreference(): ThemePreference {
   }
 }
 
+function readStoredContrast(): ContrastMode {
+  try {
+    return parseContrast(window.localStorage.getItem(CONTRAST_STORAGE_KEY))
+  } catch {
+    return "standard"
+  }
+}
+
 /** Provides the theme preference and applies the effective theme to `<html data-theme>`. */
 export function ThemeProvider({ children }: { readonly children: ReactNode }) {
   const [preference, setPreference] = useState<ThemePreference>(readStoredPreference)
+  const [contrast, setContrast] = useState<ContrastMode>(readStoredContrast)
   const [systemDark, setSystemDark] = useState<boolean>(
     () => window.matchMedia("(prefers-color-scheme: dark)").matches,
   )
@@ -45,6 +57,10 @@ export function ThemeProvider({ children }: { readonly children: ReactNode }) {
   }, [effective])
 
   useEffect(() => {
+    document.documentElement.dataset.contrast = contrast
+  }, [contrast])
+
+  useEffect(() => {
     try {
       window.localStorage.setItem(STORAGE_KEY, preference)
     } catch {
@@ -52,8 +68,16 @@ export function ThemeProvider({ children }: { readonly children: ReactNode }) {
     }
   }, [preference])
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(CONTRAST_STORAGE_KEY, contrast)
+    } catch {
+      // Same as above; contrast still applies for the session.
+    }
+  }, [contrast])
+
   return (
-    <ThemeContext.Provider value={{ preference, effective, setPreference }}>
+    <ThemeContext.Provider value={{ preference, effective, setPreference, contrast, setContrast }}>
       {children}
     </ThemeContext.Provider>
   )

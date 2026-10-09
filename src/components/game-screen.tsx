@@ -1,15 +1,41 @@
+import { useEffect, useRef, useState } from "react"
+import { ChartColumn } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
 import { bestScore } from "@/game/state.ts"
 import { useDailyGame } from "@/game/session.ts"
+import { formatCountdown, msUntilNextDay } from "@/game/countdown.ts"
 import { promptFor } from "@/game/prompts.ts"
 import { CaptureButton } from "./capture-button.tsx"
 import { GuessList } from "./guess-list.tsx"
 import { ModelStatus } from "./model-status.tsx"
 import { SolvedCard } from "./solved-card.tsx"
+import { StatsDialog } from "./stats-dialog.tsx"
+
+/** Tick the next-hunt countdown once a second. */
+function useCountdown(): string {
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(timer)
+  }, [])
+  return formatCountdown(msUntilNextDay(now))
+}
 
 /** The daily hunt: capture, hot/cold feedback, clues, reveal, share. */
 export function GameScreen() {
   const game = useDailyGame()
+  const countdown = useCountdown()
+  const [statsOpen, setStatsOpen] = useState(false)
+  const statsShownRef = useRef(false)
+
+  const ended = game.status === "ready" && !game.open
+  useEffect(() => {
+    if (ended && !statsShownRef.current) {
+      statsShownRef.current = true
+      setStatsOpen(true)
+    }
+  }, [ended])
 
   if (game.status === "prompt-error") {
     return (
@@ -36,24 +62,35 @@ export function GameScreen() {
   }
 
   const today = promptFor(new Date())
-  const ended = !game.open
 
   return (
     <div className="flex w-full max-w-md flex-col gap-4">
-      <div className="flex items-baseline justify-between">
+      <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold">Hunt #{game.dayNumber}</h2>
-        <span className="text-sm text-muted-foreground">
-          {game.solved ? `solved · best ${bestScore(game.day)}` : `${game.remaining} shots left`}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">
+            {game.solved ? `solved · best ${bestScore(game.day)}` : `${game.remaining} shots left`}
+          </span>
+          <Button
+            aria-label="View statistics"
+            onClick={() => setStatsOpen(true)}
+            size="icon-sm"
+            variant="ghost"
+          >
+            <ChartColumn />
+          </Button>
+        </div>
       </div>
 
       {ended ? (
         <SolvedCard
           best={bestScore(game.day)}
+          countdown={countdown}
           failed={!game.solved}
           guessesUsed={game.day.guesses.length}
           label={today.prompt.label}
           onShare={game.share}
+          onStats={() => setStatsOpen(true)}
           shared={game.shared}
         />
       ) : (
@@ -80,6 +117,16 @@ export function GameScreen() {
       ) : null}
 
       <GuessList day={game.day} thumbnails={game.thumbnails} />
+
+      <StatsDialog
+        countdown={countdown}
+        onOpenChange={setStatsOpen}
+        onShare={game.share}
+        open={statsOpen}
+        shareLabel={`Hunt #${game.dayNumber} — ${game.solved ? `solved in ${game.day.guesses.length}` : "unsolved"}`}
+        shared={game.shared}
+        stats={game.stats}
+      />
     </div>
   )
 }

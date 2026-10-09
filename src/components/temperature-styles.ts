@@ -7,23 +7,41 @@ export interface TemperatureStyle {
   readonly square: string
 }
 
-/** Cold-to-hot styling per temperature band. */
-export function temperatureStyle(temperature: Temperature): TemperatureStyle {
+/**
+ * Cold-to-hot styling per temperature band. High contrast swaps
+ * green/yellow for orange/blue, mirroring Wordle's colorblind mode.
+ * Share squares stay fixed so cards read the same for everyone.
+ */
+export function temperatureStyle(temperature: Temperature, highContrast = false): TemperatureStyle {
   if (temperature === "blazing") {
-    return {
-      badge: "bg-red-500/15 text-red-400 border-red-500/30",
-      bar: "bg-red-500",
-      label: "Blazing",
-      square: "🟥",
-    }
+    return highContrast
+      ? {
+          badge: "bg-orange-600/20 text-orange-500 border-orange-600/40",
+          bar: "bg-orange-600",
+          label: "Blazing",
+          square: "🟥",
+        }
+      : {
+          badge: "bg-red-500/15 text-red-400 border-red-500/30",
+          bar: "bg-red-500",
+          label: "Blazing",
+          square: "🟥",
+        }
   }
   if (temperature === "hot") {
-    return {
-      badge: "bg-orange-500/15 text-orange-400 border-orange-500/30",
-      bar: "bg-orange-500",
-      label: "Hot",
-      square: "🟧",
-    }
+    return highContrast
+      ? {
+          badge: "bg-orange-500/15 text-orange-400 border-orange-500/30",
+          bar: "bg-orange-500",
+          label: "Hot",
+          square: "🟧",
+        }
+      : {
+          badge: "bg-orange-500/15 text-orange-400 border-orange-500/30",
+          bar: "bg-orange-500",
+          label: "Hot",
+          square: "🟧",
+        }
   }
   if (temperature === "warm") {
     return {
@@ -34,17 +52,31 @@ export function temperatureStyle(temperature: Temperature): TemperatureStyle {
     }
   }
   if (temperature === "cool") {
-    return {
-      badge: "bg-green-500/15 text-green-400 border-green-500/30",
-      bar: "bg-green-500",
-      label: "Cool",
-      square: "🟩",
-    }
+    return highContrast
+      ? {
+          badge: "bg-sky-500/15 text-sky-400 border-sky-500/30",
+          bar: "bg-sky-500",
+          label: "Cool",
+          square: "🟩",
+        }
+      : {
+          badge: "bg-green-500/15 text-green-400 border-green-500/30",
+          bar: "bg-green-500",
+          label: "Cool",
+          square: "🟩",
+        }
   }
-  return {
-    badge: "bg-blue-500/15 text-blue-400 border-blue-500/30",
-    bar: "bg-blue-500",
-    label: "Frozen",
-    square: "🟦",
-  }
+  return highContrast
+    ? {
+        badge: "bg-blue-600/20 text-blue-400 border-blue-600/40",
+        bar: "bg-blue-600",
+        label: "Frozen",
+        square: "🟦",
+      }
+    : {
+        badge: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+        bar: "bg-blue-500",
+        label: "Frozen",
+        square: "🟦",
+      }
 }

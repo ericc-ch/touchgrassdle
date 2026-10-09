@@ -6,6 +6,7 @@ import { promptFor, shareDayNumber } from "./prompts.ts"
 import { MAX_GUESSES, cosineSimilarity, temperatureFor, toScore } from "./scoring.ts"
 import { EmbedError, loadScorer, type LoadedScorer, type ModelFileProgress } from "./scorer.ts"
 import { canGuess, isSolved, newDay, recordGuess, type DayState } from "./state.ts"
+import { loadStats, recordDay, saveStats, type Stats } from "./stats.ts"
 import { formatShareCard } from "./share.ts"
 import { loadStoredDay, saveStoredDay } from "./storage.ts"
 
@@ -18,6 +19,7 @@ export interface DailyGame {
   readonly modelError: string | null
   readonly dayNumber: number
   readonly day: DayState
+  readonly stats: Stats
   readonly thumbnails: ReadonlyArray<string>
   readonly scoring: boolean
   readonly notice: string | null
@@ -71,6 +73,7 @@ export function useDailyGame(): DailyGame {
   const [scoring, setScoring] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [shared, setShared] = useState(false)
+  const [stats, setStats] = useState<Stats>(loadStats)
   const [loadAttempt, setLoadAttempt] = useState(0)
   const loadingRef = useRef(false)
 
@@ -113,8 +116,19 @@ export function useDailyGame(): DailyGame {
       setDay(next)
       setThumbnails(nextThumbnails)
       saveStoredDay(today.dateKey, { day: next, thumbnails: [...nextThumbnails] })
+      // Only completed days count: recordDay is idempotent per dateKey,
+      // so reloads and re-renders never double-count.
+      if (!canGuess(next)) {
+        const nextStats = recordDay(stats, {
+          dateKey: next.dateKey,
+          solved: isSolved(next),
+          guessesUsed: next.guesses.length,
+        })
+        setStats(nextStats)
+        saveStats(nextStats)
+      }
     },
-    [today.dateKey],
+    [today.dateKey, stats],
   )
 
   const retryLoad = useCallback(() => {
@@ -189,6 +203,7 @@ export function useDailyGame(): DailyGame {
     modelError,
     dayNumber,
     day,
+    stats,
     thumbnails,
     scoring,
     notice,
