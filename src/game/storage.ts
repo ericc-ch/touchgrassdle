@@ -17,6 +17,7 @@ export const STORAGE_VERSION = "v1"
 
 const keyFor = (dateKey: string): string => `touchgrassdle:${STORAGE_VERSION}:day:${dateKey}`
 const legacyKeyFor = (dateKey: string): string => `touchgrassdle:day:${dateKey}`
+const seenHowToKey = `touchgrassdle:${STORAGE_VERSION}:seenHowTo`
 
 /** Load a stored day, or null when missing, corrupt, or unreadable. */
 export function loadStoredDay(dateKey: string): StoredDay | null {
@@ -41,5 +42,23 @@ export function saveStoredDay(dateKey: string, stored: StoredDay): void {
     window.localStorage.setItem(keyFor(dateKey), JSON.stringify(stored))
   } catch {
     // Board still works for the session; a reload just starts the day over.
+  }
+}
+
+/** True once the player has dismissed the How to Play dialog. */
+export function hasSeenHowTo(): boolean {
+  try {
+    return window.localStorage.getItem(seenHowToKey) === "1"
+  } catch {
+    return false
+  }
+}
+
+/** Remember How to Play dismissal. Silently drops on quota/private-mode errors. */
+export function markSeenHowTo(): void {
+  try {
+    window.localStorage.setItem(seenHowToKey, "1")
+  } catch {
+    // Dialog just reopens next launch; the game still works.
   }
 }

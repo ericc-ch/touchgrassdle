@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
+import { createContext, useContext, useState, useSyncExternalStore, type ReactNode } from "react"
 import { CONTRAST_STORAGE_KEY, parseContrast, type ContrastMode } from "./contrast.ts"
 import {
   STORAGE_KEY,
@@ -34,47 +34,60 @@ function readStoredContrast(): ContrastMode {
   }
 }
 
-/** Provides the theme preference and applies the effective theme to `<html data-theme>`. */
+function systemIsDark(): boolean {
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+}
+
+/**
+ * Single imperative sync from storage to `<html>`. Runs on user actions
+ * and OS changes; the no-flash script in index.html covers first paint.
+ * Storage is the source of truth so private-mode write failures still
+ * apply the requested values for the session.
+ */
+function applyThemeToDocument(preference: ThemePreference, contrast: ContrastMode): void {
+  const effective = resolveTheme(preference, systemIsDark())
+  document.documentElement.dataset["theme"] = effective
+  document.documentElement.style.colorScheme = effective
+  document.documentElement.dataset["contrast"] = contrast
+}
+
+function subscribeSystemDark(onChange: () => void): () => void {
+  const query = window.matchMedia("(prefers-color-scheme: dark)")
+  const sync = (): void => {
+    applyThemeToDocument(readStoredPreference(), readStoredContrast())
+    onChange()
+  }
+  query.addEventListener("change", sync)
+  return () => query.removeEventListener("change", sync)
+}
+
+/** Theme preference and contrast mode. No effects: state mirrors, handlers sync. */
 export function ThemeProvider({ children }: { readonly children: ReactNode }) {
-  const [preference, setPreference] = useState<ThemePreference>(readStoredPreference)
-  const [contrast, setContrast] = useState<ContrastMode>(readStoredContrast)
-  const [systemDark, setSystemDark] = useState<boolean>(
-    () => window.matchMedia("(prefers-color-scheme: dark)").matches,
-  )
+  const [preference, setPreferenceState] = useState<ThemePreference>(readStoredPreference)
+  const [contrast, setContrastState] = useState<ContrastMode>(readStoredContrast)
+  const systemDark = useSyncExternalStore(subscribeSystemDark, systemIsDark)
 
-  useEffect(() => {
-    const query = window.matchMedia("(prefers-color-scheme: dark)")
-    const onChange = (event: MediaQueryListEvent) => setSystemDark(event.matches)
-    query.addEventListener("change", onChange)
-    return () => query.removeEventListener("change", onChange)
-  }, [])
-
-  const effective = resolveTheme(preference, systemDark)
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = effective
-    document.documentElement.style.colorScheme = effective
-  }, [effective])
-
-  useEffect(() => {
-    document.documentElement.dataset.contrast = contrast
-  }, [contrast])
-
-  useEffect(() => {
+  const setPreference = (next: ThemePreference): void => {
+    setPreferenceState(next)
     try {
-      window.localStorage.setItem(STORAGE_KEY, preference)
+      window.localStorage.setItem(STORAGE_KEY, next)
     } catch {
       // Private-mode storage can throw; the theme still applies for the session.
     }
-  }, [preference])
+    applyThemeToDocument(next, readStoredContrast())
+  }
 
-  useEffect(() => {
+  const setContrast = (next: ContrastMode): void => {
+    setContrastState(next)
     try {
-      window.localStorage.setItem(CONTRAST_STORAGE_KEY, contrast)
+      window.localStorage.setItem(CONTRAST_STORAGE_KEY, next)
     } catch {
       // Same as above; contrast still applies for the session.
     }
-  }, [contrast])
+    applyThemeToDocument(readStoredPreference(), next)
+  }
+
+  const effective = resolveTheme(preference, systemDark)
 
   return (
     <ThemeContext.Provider value={{ preference, effective, setPreference, contrast, setContrast }}>

@@ -1,10 +1,16 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useMemo, useState, useSyncExternalStore } from "react"
 import { Effect, Option } from "effect"
 import { promptEmbeddingFor } from "./embeddings.ts"
 import { fileToThumbnail } from "./photo.ts"
 import { promptFor, shareDayNumber } from "./prompts.ts"
 import { MAX_GUESSES, cosineSimilarity, temperatureFor, toScore } from "./scoring.ts"
-import { EmbedError, loadScorer, type LoadedScorer, type ModelFileProgress } from "./scorer.ts"
+import {
+  EmbedError,
+  ensureScorer,
+  getScorerSnapshot,
+  retryScorer,
+  subscribeScorer,
+} from "./scorer.ts"
 import { canGuess, isSolved, newDay, recordGuess, type DayState } from "./state.ts"
 import { loadStats, recordDay, saveStats, type Stats } from "./stats.ts"
 import { formatShareCard } from "./share.ts"
@@ -49,13 +55,13 @@ export function useDailyGame(): DailyGame {
   const dayNumber = useMemo(() => shareDayNumber(new Date()), [])
   const promptEmbedding = useMemo(() => promptEmbeddingFor(today.prompt.id), [today])
 
-  const [status, setStatus] = useState<GameStatus>(() =>
-    Option.isNone(promptEmbedding) ? "prompt-error" : "loading-model",
-  )
-  const [modelFile, setModelFile] = useState<string | null>(null)
-  const [modelFraction, setModelFraction] = useState<number | null>(null)
-  const [scorer, setScorer] = useState<LoadedScorer | null>(null)
-  const [modelError, setModelError] = useState<string | null>(null)
+  // Shared scorer lifecycle: one load for all mounts, StrictMode-safe.
+  // ensureScorer is idempotent; the store dedupes concurrent calls.
+  const loader = useSyncExternalStore(subscribeScorer, getScorerSnapshot)
+  if (Option.isSome(promptEmbedding)) {
+    ensureScorer()
+  }
+  const status: GameStatus = Option.isNone(promptEmbedding) ? "prompt-error" : loader.status
   const [day, setDay] = useState<DayState>(() => {
     const stored = loadStoredDay(today.dateKey)
     if (stored !== null && stored.day.promptId === today.prompt.id) {
@@ -74,42 +80,6 @@ export function useDailyGame(): DailyGame {
   const [notice, setNotice] = useState<string | null>(null)
   const [shared, setShared] = useState(false)
   const [stats, setStats] = useState<Stats>(loadStats)
-  const [loadAttempt, setLoadAttempt] = useState(0)
-  const loadingRef = useRef(false)
-
-  useEffect(() => {
-    if (status !== "loading-model" || loadingRef.current) {
-      return
-    }
-    loadingRef.current = true
-    let cancelled = false
-    void Effect.runPromise(
-      loadScorer((progress: ModelFileProgress) => {
-        if (!cancelled) {
-          setModelFile(progress.file)
-          setModelFraction(progress.fraction)
-        }
-      }),
-    ).then(
-      (loaded) => {
-        if (!cancelled) {
-          setScorer(loaded)
-          setStatus("ready")
-        }
-        loadingRef.current = false
-      },
-      (cause: unknown) => {
-        if (!cancelled) {
-          setModelError(cause instanceof Error ? cause.message : String(cause))
-          setStatus("model-error")
-        }
-        loadingRef.current = false
-      },
-    )
-    return () => {
-      cancelled = true
-    }
-  }, [status, loadAttempt])
 
   const persist = useCallback(
     (next: DayState, nextThumbnails: ReadonlyArray<string>) => {
@@ -132,16 +102,13 @@ export function useDailyGame(): DailyGame {
   )
 
   const retryLoad = useCallback(() => {
-    setModelFile(null)
-    setModelFraction(null)
-    setModelError(null)
-    setStatus("loading-model")
-    setLoadAttempt((n) => n + 1)
+    retryScorer()
   }, [])
 
   const scorePhoto = useCallback(
     (file: File) => {
-      if (scorer === null || Option.isNone(promptEmbedding) || scoring || !canGuess(day)) {
+      const active = loader.scorer
+      if (active === null || Option.isNone(promptEmbedding) || scoring || !canGuess(day)) {
         return
       }
       setScoring(true)
@@ -153,7 +120,7 @@ export function useDailyGame(): DailyGame {
             try: () => fileToThumbnail(file),
             catch: (cause) => new EmbedError({ message: errorMessage(cause) }),
           })
-          const vector = yield* scorer.embedImage(file)
+          const vector = yield* active.embedImage(file)
           const score = toScore(cosineSimilarity(vector, promptVector))
           return { thumbnail, score }
         }),
@@ -177,7 +144,7 @@ export function useDailyGame(): DailyGame {
         },
       )
     },
-    [scorer, promptEmbedding, scoring, day, thumbnails, persist, today.prompt.clues],
+    [loader.scorer, promptEmbedding, scoring, day, thumbnails, persist, today.prompt.clues],
   )
 
   const share = useCallback(() => {
@@ -198,9 +165,9 @@ export function useDailyGame(): DailyGame {
 
   return {
     status,
-    modelFile,
-    modelFraction,
-    modelError,
+    modelFile: loader.file,
+    modelFraction: loader.fraction,
+    modelError: loader.error,
     dayNumber,
     day,
     stats,

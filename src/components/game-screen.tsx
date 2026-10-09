@@ -1,25 +1,24 @@
-import { useEffect, useRef, useState } from "react"
-import { ChartColumn } from "lucide-react"
+import { useState } from "react"
+import { ChartColumn, CircleQuestionMark } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { bestScore } from "@/game/state.ts"
 import { useDailyGame } from "@/game/session.ts"
+import { useNow } from "@/game/clock.ts"
 import { formatCountdown, msUntilNextDay } from "@/game/countdown.ts"
 import { promptFor } from "@/game/prompts.ts"
+import { hasSeenHowTo, markSeenHowTo } from "@/game/storage.ts"
 import { CaptureButton } from "./capture-button.tsx"
 import { GuessList } from "./guess-list.tsx"
+import { HowToPlayDialog } from "./how-to-play-dialog.tsx"
 import { ModelStatus } from "./model-status.tsx"
 import { SolvedCard } from "./solved-card.tsx"
 import { StatsDialog } from "./stats-dialog.tsx"
 
 /** Tick the next-hunt countdown once a second. */
 function useCountdown(): string {
-  const [now, setNow] = useState(() => new Date())
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(timer)
-  }, [])
-  return formatCountdown(msUntilNextDay(now))
+  const now = useNow()
+  return formatCountdown(msUntilNextDay(new Date(now)))
 }
 
 /** The daily hunt: capture, hot/cold feedback, clues, reveal, share. */
@@ -27,15 +26,17 @@ export function GameScreen() {
   const game = useDailyGame()
   const countdown = useCountdown()
   const [statsOpen, setStatsOpen] = useState(false)
-  const statsShownRef = useRef(false)
-
+  const [howToOpen, setHowToOpen] = useState<boolean>(() => !hasSeenHowTo())
+  // Open stats once when the day ends. Render-time derivation replaces
+  // the effect: same timing, no subscription, StrictMode-safe.
+  const [wasEnded, setWasEnded] = useState(false)
   const ended = game.status === "ready" && !game.open
-  useEffect(() => {
-    if (ended && !statsShownRef.current) {
-      statsShownRef.current = true
+  if (ended !== wasEnded) {
+    setWasEnded(ended)
+    if (ended) {
       setStatsOpen(true)
     }
-  }, [ended])
+  }
 
   if (game.status === "prompt-error") {
     return (
@@ -47,18 +48,20 @@ export function GameScreen() {
     )
   }
 
-  if (game.status === "loading-model" || game.status === "model-error") {
-    return (
-      <div className="w-full max-w-md">
-        <ModelStatus
-          error={game.modelError}
-          failed={game.status === "model-error"}
-          file={game.modelFile}
-          fraction={game.modelFraction}
-          onRetry={game.retryLoad}
-        />
-      </div>
-    )
+  const ready = game.status === "ready"
+  const failed = game.status === "model-error"
+  const loading = !ready
+  const showSlimLoader = loading && !howToOpen
+
+  const handleHowToChange = (open: boolean): void => {
+    if (!open) {
+      markSeenHowTo()
+    }
+    setHowToOpen(open)
+  }
+  const startHunting = (): void => {
+    markSeenHowTo()
+    setHowToOpen(false)
   }
 
   const today = promptFor(new Date())
@@ -71,6 +74,14 @@ export function GameScreen() {
           <span className="text-sm text-muted-foreground">
             {game.solved ? `solved · best ${bestScore(game.day)}` : `${game.remaining} shots left`}
           </span>
+          <Button
+            aria-label="How to play"
+            onClick={() => setHowToOpen(true)}
+            size="icon-sm"
+            variant="ghost"
+          >
+            <CircleQuestionMark />
+          </Button>
           <Button
             aria-label="View statistics"
             onClick={() => setStatsOpen(true)}
@@ -95,12 +106,22 @@ export function GameScreen() {
         />
       ) : (
         <CaptureButton
-          disabled={!game.open}
+          disabled={!game.open || !ready}
           onFile={game.scorePhoto}
           remaining={game.remaining}
           scoring={game.scoring}
         />
       )}
+
+      {showSlimLoader ? (
+        <ModelStatus
+          error={game.modelError}
+          failed={failed}
+          file={game.modelFile}
+          fraction={game.modelFraction}
+          onRetry={game.retryLoad}
+        />
+      ) : null}
 
       {game.latestClue !== null && game.open ? (
         <Alert>
@@ -117,6 +138,17 @@ export function GameScreen() {
       ) : null}
 
       <GuessList day={game.day} thumbnails={game.thumbnails} />
+
+      <HowToPlayDialog
+        error={game.modelError}
+        failed={failed}
+        fraction={game.modelFraction}
+        onOpenChange={handleHowToChange}
+        onPlay={startHunting}
+        onRetry={game.retryLoad}
+        open={howToOpen}
+        ready={ready}
+      />
 
       <StatsDialog
         countdown={countdown}

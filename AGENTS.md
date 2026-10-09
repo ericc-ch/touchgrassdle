@@ -4,6 +4,7 @@ Touchgrassdle is a daily hidden-prompt photo game (see `photo-hunt.md`, the sour
 
 - pnpm as package manager (`pnpm install`, `pnpm <script>`, `pnpm add`). Do not use npm/bun directly for deps.
 - Strict TS (mirror of xkeep root flags) + `@effect/language-service`. Follow the code-conventions skill: Effect mandatory, `Schema` for parsing, tagged errors, `Effect.fn`/`Effect.gen`.
+- `useEffect` is banned (`no-restricted-imports`; `src/components/ui/**` registry files exempt): synchronize with `useSyncExternalStore`, derive during render, or move work into event handlers.
 - `oxlint` + `oxfmt` (configs copied from xkeep). Path alias `@/*` → `./src/*`.
 - Gate: `pnpm check` — typecheck, vitest, lint, format check, build.
 
@@ -16,4 +17,5 @@ Touchgrassdle is a daily hidden-prompt photo game (see `photo-hunt.md`, the sour
 - Scorer: SigLIP2 via `@huggingface/transformers` (`onnx-community/siglip2-base-patch16-224-ONNX`, q4f16). `pnpm precompute` regenerates `src/game/prompt-embeddings.json`. Runtimes: WebGPU when `requestAdapter()` resolves, else WASM — chosen up front because transformers chains session creation on one shared promise and a failed first attempt poisons later retries.
 - COOP/COEP headers (`vite.config.ts` dev+preview) enable the threaded WASM build. Production hosting must send them too.
 - Browser proof: `pnpm build && pnpm smoke:browser` (headless Helium via nix store, `E2E_BROWSER` overrides). Leaves no stray server.
+- E2E: Playwright `tests/e2e/` (stub scorer via `?e2eScorer=stub|solve|fail`, no model download). `pnpm e2e` probes `helium` for `E2E_BROWSER` (bundled Chromium lacks system libs on nix). Verification skill: `.agents/skills/verify-touchgrassdle/` (launch/doctor/drive/evidence/cleanup, proof in `.audit/evidence/`).
 - Storage is versioned (`touchgrassdle:v1:…`, day readers fall back to the legacy unversioned key). Stats (`src/game/stats.ts`: played/wins/streaks/1-6 histogram, Wordle rules — only completed days count, losses reset streak) record once per UTC dateKey. Contrast mode (`standard`/`high`, orange-blue bands) rides the theme provider as `data-contrast`, separate from light/dark.

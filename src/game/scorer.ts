@@ -1,5 +1,6 @@
 import { Data, Effect, Option } from "effect"
 import { AutoProcessor, RawImage, SiglipVisionModel } from "@huggingface/transformers"
+import { e2eStubScorer, readE2EScorerMode } from "./e2e-scorer.ts"
 import { parseEmbedding, type Embedding } from "./scoring.ts"
 
 export const MODEL_ID = "onnx-community/siglip2-base-patch16-224-ONNX"
@@ -33,6 +34,87 @@ interface VisionOutput {
 
 const asVisionOutput = (value: unknown): VisionOutput => value as VisionOutput
 
+/** Lifecycle of the shared scorer load. Session-level prompt errors live elsewhere. */
+export type ScorerStatus = "loading-model" | "ready" | "model-error"
+
+export interface ScorerSnapshot {
+  readonly status: ScorerStatus
+  readonly scorer: LoadedScorer | null
+  readonly file: string | null
+  readonly fraction: number | null
+  readonly error: string | null
+}
+
+let snapshot: ScorerSnapshot = {
+  status: "loading-model",
+  scorer: null,
+  file: null,
+  fraction: null,
+  error: null,
+}
+const snapshotListeners = new Set<() => void>()
+let loadStarted = false
+
+function emit(next: ScorerSnapshot): void {
+  snapshot = next
+  for (const listener of snapshotListeners) {
+    listener()
+  }
+}
+
+export function subscribeScorer(listener: () => void): () => void {
+  snapshotListeners.add(listener)
+  return () => {
+    snapshotListeners.delete(listener)
+  }
+}
+
+export function getScorerSnapshot(): ScorerSnapshot {
+  return snapshot
+}
+
+function reportProgress(progress: ModelFileProgress): void {
+  if (snapshot.status !== "loading-model") {
+    return
+  }
+  emit({ ...snapshot, file: progress.file, fraction: progress.fraction })
+}
+
+/**
+ * Start the one shared scorer load. Idempotent: remounts and retries call
+ * it freely, but only one load ever runs. Replaces load-on-mount effects,
+ * which StrictMode double-invokes in dev.
+ */
+export function ensureScorer(): void {
+  if (typeof window === "undefined" || loadStarted || snapshot.status !== "loading-model") {
+    return
+  }
+  loadStarted = true
+  void Effect.runPromise(loadScorer(reportProgress)).then(
+    (loaded) => {
+      loadStarted = false
+      emit({ ...snapshot, status: "ready", scorer: loaded, error: null })
+    },
+    (cause: unknown) => {
+      loadStarted = false
+      emit({
+        ...snapshot,
+        status: "model-error",
+        error: cause instanceof Error ? cause.message : String(cause),
+      })
+    },
+  )
+}
+
+/** Retry after a failure. No-op unless currently errored. */
+export function retryScorer(): void {
+  if (snapshot.status !== "model-error") {
+    return
+  }
+  emit({ status: "loading-model", scorer: null, file: null, fraction: null, error: null })
+  ensureScorer()
+}
+
 const progressCallback =
   (onProgress: (progress: ModelFileProgress) => void) => (update: unknown) => {
     if (typeof update !== "object" || update === null) {
@@ -58,6 +140,14 @@ const progressCallback =
 export const loadScorer = Effect.fn("loadScorer")(function* (
   onProgress: (progress: ModelFileProgress) => void,
 ): Effect.fn.Return<LoadedScorer, ModelLoadError> {
+  const e2e = readE2EScorerMode()
+  if (e2e === "fail") {
+    return yield* new ModelLoadError({ message: "e2e forced scorer failure" })
+  }
+  if (e2e !== null) {
+    return e2eStubScorer(e2e)
+  }
+
   const processor = yield* Effect.tryPromise({
     try: () => AutoProcessor.from_pretrained(MODEL_ID),
     catch: failLoad,
