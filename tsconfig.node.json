@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["./vite.config.ts"],
+  "include": ["./vite.config.ts", "./scripts/", "./src/game/prompts.ts", "./src/game/scoring.ts"],
   "compilerOptions": {
     "composite": true,
     "lib": ["ESNext"],
