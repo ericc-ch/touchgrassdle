@@ -1,6 +1,8 @@
 {
   "extends": "./tsconfig.json",
   "include": [
+    "./alchemy.run.ts",
+    "./alchemy/",
     "./vite.config.ts",
     "./vitest.config.ts",
     "./scripts/",
