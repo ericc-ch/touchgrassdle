@@ -49,8 +49,11 @@ const progressCallback =
   }
 
 /**
- * Load the on-device vision encoder (WebGPU when available, WASM fallback)
- * plus the image processor. Photos never leave the device.
+ * Load the on-device vision encoder plus the image processor.
+ * Prefers WebGPU when an adapter exists, otherwise goes straight to WASM.
+ * (The fallback must be chosen up front: transformers chains session
+ * creation on one shared promise, so a failed first attempt poisons
+ * any later retry in the same page.)
  */
 export const loadScorer = Effect.fn("loadScorer")(function* (
   onProgress: (progress: ModelFileProgress) => void,
@@ -70,9 +73,22 @@ export const loadScorer = Effect.fn("loadScorer")(function* (
         }),
       catch: failLoad,
     })
-  const vision = yield* Effect.catchTag(loadVision("webgpu"), "ModelLoadError", () =>
-    loadVision("wasm"),
-  )
+
+  const adapter = yield* Effect.tryPromise({
+    try: async () => {
+      const gpu = (navigator as Navigator & { gpu?: { requestAdapter(): Promise<unknown> } }).gpu
+      if (gpu === undefined) {
+        return null
+      }
+      try {
+        return await gpu.requestAdapter()
+      } catch {
+        return null
+      }
+    },
+    catch: failLoad,
+  })
+  const vision = yield* loadVision(adapter === null ? "wasm" : "webgpu")
 
   const embedImage = (photo: Blob): Effect.Effect<Embedding, EmbedError> =>
     Effect.gen(function* () {

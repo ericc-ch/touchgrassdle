@@ -1,6 +1,6 @@
 import { ThemeProvider } from "./theme/provider.tsx"
 import { ThemeSwitch } from "./theme/switch.tsx"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { GameScreen } from "./components/game-screen.tsx"
 
 export function App() {
   return (
@@ -10,16 +10,8 @@ export function App() {
           <h1 className="text-lg font-bold">Touchgrassdle</h1>
           <ThemeSwitch />
         </header>
-        <main className="flex flex-1 flex-col items-center justify-center p-4">
-          <Card className="w-full max-w-sm">
-            <CardHeader>
-              <CardTitle>Today&apos;s hunt</CardTitle>
-              <CardDescription>Go outside and shoot something.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">Game board lands here next.</p>
-            </CardContent>
-          </Card>
+        <main className="flex flex-1 flex-col items-center p-4">
+          <GameScreen />
         </main>
       </div>
     </ThemeProvider>

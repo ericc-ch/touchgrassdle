@@ -1,7 +1,5 @@
-import { MAX_GUESSES } from "./scoring.ts"
-import type { DayState } from "./state.ts"
-import { bestScore, isSolved } from "./state.ts"
-import type { Temperature } from "./scoring.ts"
+import { MAX_GUESSES, type Temperature } from "./scoring.ts"
+import { bestScore, isSolved, type DayState } from "./state.ts"
 
 /** Share square per temperature band, cold to hot. */
 export function squareFor(temperature: Temperature): string {

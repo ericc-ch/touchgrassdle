@@ -13,6 +13,8 @@
     "format": "oxfmt --check",
     "format:fix": "oxfmt",
     "precompute": "tsx scripts/precompute-embeddings.ts",
+    "preview": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
+    "smoke:browser": "tsx scripts/smoke-browser.ts",
     "check": "pnpm typecheck && pnpm test && pnpm lint && pnpm format && pnpm build"
   },
   "dependencies": {
@@ -32,6 +34,7 @@
   },
   "devDependencies": {
     "@effect/language-service": "^0.87.1",
+    "@playwright/test": "^1.64.0",
     "@tailwindcss/vite": "^4.1.0",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.0",
