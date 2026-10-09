@@ -1,6 +1,5 @@
 node_modules/
 dist/
-dist-r2/
 .alchemy/
 *.tsbuildinfo
 *.log

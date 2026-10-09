@@ -17,28 +17,34 @@ DNS + cert automatic).
 - `Cloudflare.Website.StaticSite` runs `pnpm build:deploy`, uploads
   `dist/` as Worker assets, serves through `alchemy/worker.ts`.
 - The worker adds COOP `same-origin` + COEP `credentialless` (the
-  threaded WASM scorer needs SharedArrayBuffer) and serves `*.wasm`
-  from the `Wasm` R2 bucket. Everything else falls through to ASSETS.
+  threaded WASM scorer needs SharedArrayBuffer).
 - `assets.htmlHandling` is `"none"` so `/` matches no asset and
   reaches the worker, which serves `index.html` with headers. Asset
-  matches bypass the worker entirely: alchemy beta never sends
-  `run_worker_first` to the API, so headers cannot cover hashed
-  assets. Same-origin subresources do not need them.
+  matches bypass the worker entirely (alchemy never sends
+  `run_worker_first`), so headers cannot be added to them here.
+  Same-origin subresources do not need them.
 - Subrequests strip conditional headers: a 304 would preserve a stale
   edge entry with old headers forever.
 
 ## The 25 MB wall
 
-Workers static assets cap files at 25 MB; the threaded ONNX wasm is
-~25.6 MB and fails the deploy with `AssetTooLargeError`. The build
-moves `dist/assets/*.wasm` to `dist-r2/` (`stage-large-assets.ts`,
-run by `build:deploy`), the `UploadLargeAssets` Action (`R2
-WriteBucket` + `WriteBucketLocal`) uploads them to R2, and the worker
-serves them same-origin. The Action re-runs only when the
-onnxruntime-web sources change and runs after the site (it takes
-`site.url` as input), so it always reads freshly built files. Old R2
-keys are kept: dist names embed the content hash, which makes
-rollback safe.
+Workers static assets cap files at 25 MB. The threaded ONNX Runtime
+wasm is ~25.6 MB, so `build:deploy` deletes `dist/assets/*.wasm`
+after the build. The browser never requests that file: transformers
+resolves the engine to the pinned jsdelivr CDN at runtime (browser
+proof: force `navigator.gpu` to undefined, score a photo, watch the
+requests). The model weights already download from Hugging Face the
+same way, so no model bytes are self-hosted at all.
+
+## R2 leftover
+
+The first deploy design used an R2 bucket for the wasm and was later
+removed in favor of the CDN default. Undeclaring a non-empty bucket
+fails the deploy with `BucketNotEmpty` and still drops its state
+entry, so re-declaring it later creates a fresh bucket instead of
+reusing the old one. Stray `touchgrassdle-wasm-*` buckets are
+untracked orphans: private, pennies at most, safe to delete from the
+dashboard (empty first, then delete the bucket).
 
 ## Cache caveat
 

@@ -3,7 +3,6 @@ import { adopt } from "alchemy/AdoptPolicy"
 import * as Cloudflare from "alchemy/Cloudflare"
 import { Stack } from "alchemy/Stack"
 import * as Effect from "effect/Effect"
-import { UploadLargeAssets, WasmBucket, readWasmSourceHash } from "./alchemy/large-assets.ts"
 
 export default Alchemy.Stack(
   "touchgrassdle",
@@ -15,9 +14,6 @@ export default Alchemy.Stack(
     const zone = yield* Cloudflare.Zone.Zone("Zone", {
       name: "ericc.ch",
     }).pipe(adopt(true))
-    yield* WasmBucket
-
-    const wasmSource = yield* readWasmSourceHash
     const stack = yield* Stack
 
     const site = yield* Cloudflare.Website.StaticSite("Website", {
@@ -35,20 +31,11 @@ export default Alchemy.Stack(
       // The custom domain lives on prod only; other stages keep their
       // workers.dev URL so cold-cache experiments never touch DNS.
       ...(stack.stage === "prod" ? { domain: "touchgrassdle.ericc.ch" } : {}),
-      env: {
-        WASM_BUCKET: WasmBucket,
-      },
-    })
-
-    const uploaded = yield* UploadLargeAssets({
-      wasmSource,
-      siteUrl: site.url,
     })
 
     return {
       url: site.url,
       zone: zone.name,
-      wasmKeys: uploaded.keys,
     }
   }),
 )
