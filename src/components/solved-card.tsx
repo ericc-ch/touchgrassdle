@@ -13,7 +13,7 @@ export interface SolvedCardProps {
   readonly onStats: () => void
 }
 
-/** Reveal + share + countdown once the day ends (solved or out of shots). */
+/** Reveal + share + countdown once the day ends (found or out of photos). */
 export function SolvedCard({
   label,
   guessesUsed,
@@ -27,11 +27,11 @@ export function SolvedCard({
   return (
     <Card className="w-full border-primary/40">
       <CardHeader>
-        <CardTitle>{failed ? "Out of shots" : "Solved!"}</CardTitle>
+        <CardTitle>{failed ? "Out of photos" : "Found it!"}</CardTitle>
         <CardDescription>
           {failed
-            ? `Today's prompt was: ${label}`
-            : `It was ${label} — cracked in ${guessesUsed} ${guessesUsed === 1 ? "shot" : "shots"} (best ${best}).`}
+            ? `Today's subject was: ${label}`
+            : `It was ${label} — found in ${guessesUsed} ${guessesUsed === 1 ? "photo" : "photos"} (best ${best}%).`}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
@@ -45,7 +45,7 @@ export function SolvedCard({
           </Button>
         </div>
         <p className="text-center text-sm text-muted-foreground tabular-nums">
-          Next hunt in {countdown}
+          Next day in {countdown}
         </p>
       </CardContent>
     </Card>

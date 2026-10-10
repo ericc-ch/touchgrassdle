@@ -8,23 +8,27 @@ import { useNow } from "@/game/clock.ts"
 import { formatCountdown, msUntilNextDay } from "@/game/countdown.ts"
 import { promptFor } from "@/game/prompts.ts"
 import { hasSeenHowTo, markSeenHowTo } from "@/game/storage.ts"
+import { ThemeSwitch } from "@/theme/switch.tsx"
+import { useDevMode } from "@/game/dev-cheat.ts"
 import { CaptureButton } from "./capture-button.tsx"
+import { DevDrawer } from "./dev-drawer.tsx"
 import { GuessList } from "./guess-list.tsx"
 import { HowToPlayDialog } from "./how-to-play-dialog.tsx"
 import { ModelStatus } from "./model-status.tsx"
 import { SolvedCard } from "./solved-card.tsx"
 import { StatsDialog } from "./stats-dialog.tsx"
 
-/** Tick the next-hunt countdown once a second. */
+/** Tick the next-day countdown once a second. */
 function useCountdown(): string {
   const now = useNow()
   return formatCountdown(msUntilNextDay(new Date(now)))
 }
 
-/** The daily hunt: capture, hot/cold feedback, clues, reveal, share. */
+/** The daily photo game: take photos, get closeness %, hints, reveal, share. */
 export function GameScreen() {
   const game = useDailyGame()
   const countdown = useCountdown()
+  const dev = useDevMode()
   const [statsOpen, setStatsOpen] = useState(false)
   const [howToOpen, setHowToOpen] = useState<boolean>(() => !hasSeenHowTo())
   // Open stats once when the day ends. Render-time derivation replaces
@@ -59,7 +63,7 @@ export function GameScreen() {
     }
     setHowToOpen(open)
   }
-  const startHunting = (): void => {
+  const startPlaying = (): void => {
     markSeenHowTo()
     setHowToOpen(false)
   }
@@ -67,98 +71,113 @@ export function GameScreen() {
   const today = promptFor(new Date())
 
   return (
-    <div className="flex w-full max-w-md flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold">Hunt #{game.dayNumber}</h2>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">
-            {game.solved ? `solved · best ${bestScore(game.day)}` : `${game.remaining} shots left`}
-          </span>
-          <Button
-            aria-label="How to play"
-            onClick={() => setHowToOpen(true)}
-            size="icon-sm"
-            variant="ghost"
-          >
-            <CircleQuestionMark />
-          </Button>
-          <Button
-            aria-label="View statistics"
-            onClick={() => setStatsOpen(true)}
-            size="icon-sm"
-            variant="ghost"
-          >
-            <ChartColumn />
-          </Button>
+    <>
+      <header className="border-b px-4">
+        <div className="mx-auto flex w-full max-w-md items-center justify-between gap-2 py-2.5">
+          <h1 className="text-lg font-bold tracking-tight">Touchgrassdle</h1>
+          <nav aria-label="Game" className="flex items-center gap-0.5">
+            <Button
+              aria-label="How to play"
+              onClick={() => setHowToOpen(true)}
+              size="icon-sm"
+              variant="ghost"
+            >
+              <CircleQuestionMark />
+            </Button>
+            <Button
+              aria-label="View statistics"
+              onClick={() => setStatsOpen(true)}
+              size="icon-sm"
+              variant="ghost"
+            >
+              <ChartColumn />
+            </Button>
+            <ThemeSwitch />
+          </nav>
         </div>
-      </div>
+      </header>
+      <main className="flex flex-1 flex-col items-center p-4">
+        <div className="flex w-full max-w-md flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold">Day #{game.dayNumber}</h2>
+            <span className="text-sm text-muted-foreground">
+              {game.solved
+                ? `found · best ${bestScore(game.day)}%`
+                : `${game.remaining} photos left`}
+            </span>
+          </div>
 
-      {ended ? (
-        <SolvedCard
-          best={bestScore(game.day)}
-          countdown={countdown}
-          failed={!game.solved}
-          guessesUsed={game.day.guesses.length}
-          label={today.prompt.label}
-          onShare={game.share}
-          onStats={() => setStatsOpen(true)}
-          shared={game.shared}
-        />
-      ) : (
-        <CaptureButton
-          disabled={!game.open || !ready}
-          onFile={game.scorePhoto}
-          remaining={game.remaining}
-          scoring={game.scoring}
-        />
-      )}
+          {ended ? (
+            <SolvedCard
+              best={bestScore(game.day)}
+              countdown={countdown}
+              failed={!game.solved}
+              guessesUsed={game.day.guesses.length}
+              label={today.prompt.label}
+              onShare={game.share}
+              onStats={() => setStatsOpen(true)}
+              shared={game.shared}
+            />
+          ) : (
+            <CaptureButton
+              disabled={!game.open || !ready}
+              onFile={game.scorePhoto}
+              remaining={game.remaining}
+              scoring={game.scoring}
+            />
+          )}
 
-      {showSlimLoader ? (
-        <ModelStatus
-          error={game.modelError}
-          failed={failed}
-          file={game.modelFile}
-          fraction={game.modelFraction}
-          onRetry={game.retryLoad}
-        />
-      ) : null}
+          {showSlimLoader ? (
+            <ModelStatus
+              error={game.modelError}
+              failed={failed}
+              file={game.modelFile}
+              fraction={game.modelFraction}
+              onRetry={game.retryLoad}
+            />
+          ) : null}
 
-      {game.latestClue !== null && game.open ? (
-        <Alert>
-          <AlertDescription>{game.latestClue}</AlertDescription>
-        </Alert>
-      ) : null}
+          {game.notice !== null ? (
+            <Alert variant={game.notice.startsWith("Touchgrassdle") ? "default" : "destructive"}>
+              <AlertDescription className="break-words whitespace-pre-wrap">
+                {game.notice}
+              </AlertDescription>
+            </Alert>
+          ) : null}
 
-      {game.notice !== null ? (
-        <Alert variant={game.notice.startsWith("Touchgrassdle") ? "default" : "destructive"}>
-          <AlertDescription className="break-words whitespace-pre-wrap">
-            {game.notice}
-          </AlertDescription>
-        </Alert>
-      ) : null}
+          <GuessList day={game.day} thumbnails={game.thumbnails} />
 
-      <GuessList day={game.day} thumbnails={game.thumbnails} />
+          <HowToPlayDialog
+            error={game.modelError}
+            failed={failed}
+            fraction={game.modelFraction}
+            onOpenChange={handleHowToChange}
+            onPlay={startPlaying}
+            onRetry={game.retryLoad}
+            open={howToOpen}
+            ready={ready}
+          />
 
-      <HowToPlayDialog
-        error={game.modelError}
-        failed={failed}
-        fraction={game.modelFraction}
-        onOpenChange={handleHowToChange}
-        onPlay={startHunting}
-        onRetry={game.retryLoad}
-        open={howToOpen}
-        ready={ready}
-      />
-
-      <StatsDialog
-        countdown={countdown}
-        onOpenChange={setStatsOpen}
-        onShare={game.share}
-        open={statsOpen}
-        shareLabel={`Hunt #${game.dayNumber} — ${game.solved ? `solved in ${game.day.guesses.length}` : "unsolved"}`}
-        shared={game.shared}
-        stats={game.stats}
-      />
-    </div>
+          <StatsDialog
+            countdown={countdown}
+            onOpenChange={setStatsOpen}
+            onShare={game.share}
+            open={statsOpen}
+            shareLabel={`Day #${game.dayNumber} — ${game.solved ? `found in ${game.day.guesses.length}` : "not found"}`}
+            shared={game.shared}
+            stats={game.stats}
+          />
+          {dev ? (
+            <DevDrawer
+              game={game}
+              onHowTo={() => setHowToOpen(true)}
+              onStats={() => setStatsOpen(true)}
+              promptId={today.prompt.id}
+              promptLabel={today.prompt.label}
+            />
+          ) : null}
+        </div>
+      </main>
+    </>
   )
 }

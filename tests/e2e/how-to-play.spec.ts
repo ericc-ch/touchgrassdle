@@ -1,17 +1,17 @@
 import { expect, test } from "@playwright/test"
 
-test("first visit shows How to Play, Play starts the hunt and persists", async ({ page }) => {
+test("first visit shows How to Play, Play starts the game and persists", async ({ page }) => {
   await page.goto("/?e2eScorer=stub", { waitUntil: "domcontentloaded" })
 
   const dialog = page.getByRole("dialog", { name: "How to play" })
   await expect(dialog).toBeVisible()
-  await expect(dialog.getByText("80 points solves the hunt.")).toBeVisible()
+  await expect(dialog.getByText("80% or more finds it.")).toBeVisible()
 
-  const start = dialog.getByRole("button", { name: "Start hunting" })
+  const start = dialog.getByRole("button", { name: "Start playing" })
   await expect(start).toBeEnabled()
   await start.click()
   await expect(dialog).toBeHidden()
-  await expect(page.getByRole("button", { name: /Shoot \(6 left\)/ })).toBeVisible()
+  await expect(page.getByRole("button", { name: /Take photo \(6 left\)/ })).toBeVisible()
 
   const seen = await page.evaluate(() => window.localStorage.getItem("touchgrassdle:v1:seenHowTo"))
   expect(seen).toBe("1")
@@ -28,6 +28,6 @@ test("scorer failure surfaces Retry inside How to Play", async ({ page }) => {
 
   const dialog = page.getByRole("dialog", { name: "How to play" })
   await expect(dialog).toBeVisible()
-  await expect(dialog.getByText("The judge cannot load.")).toBeVisible()
+  await expect(dialog.getByText("The photo scorer cannot load.")).toBeVisible()
   await expect(dialog.getByRole("button", { name: "Retry" })).toBeVisible()
 })

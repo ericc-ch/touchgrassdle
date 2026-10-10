@@ -192,10 +192,10 @@ export function utcDayNumber(date: Date): number {
   )
 }
 
-/** First hunt day: 2026-10-09 UTC. Share cards count from #1. */
+/** First day: 2026-10-09 UTC. Share cards count from #1. */
 export const FIRST_DAY_NUMBER = utcDayNumber(new Date("2026-10-09T00:00:00Z"))
 
-/** Share-card day number, 1-based from the first hunt. */
+/** Share-card day number, 1-based from the first day. */
 export function shareDayNumber(date: Date): number {
   return utcDayNumber(date) - FIRST_DAY_NUMBER + 1
 }

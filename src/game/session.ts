@@ -37,6 +37,31 @@ export interface DailyGame {
   readonly retryLoad: () => void
   readonly scorePhoto: (file: File) => void
   readonly share: () => void
+  readonly dev: DevControls
+}
+
+/** Dev-mode controls. Everything mutates the live day in place; no fake previews. */
+export interface DevControls {
+  readonly addFakeGuess: (score: number) => void
+  readonly solveNow: () => void
+  readonly fillFailed: () => void
+  readonly clearBoard: () => void
+  readonly setNoticeText: (notice: string | null) => void
+  readonly setScoringNow: (scoring: boolean) => void
+  readonly setStatusOverride: (status: GameStatus | null) => void
+  readonly setFractionOverride: (fraction: number | null) => void
+  readonly setErrorOverride: (error: string | null) => void
+  readonly statusOverride: GameStatus | null
+}
+
+/** Placeholder thumbnail for dev-injected guesses: gray square with the score. */
+function fakeThumbnail(score: number): string {
+  const svg =
+    `<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128'>` +
+    `<rect width='128' height='128' fill='#3f3f46'/>` +
+    `<text x='64' y='74' font-family='sans-serif' font-size='30' font-weight='bold' ` +
+    `fill='white' text-anchor='middle'>${score}</text></svg>`
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`
 }
 
 const errorMessage = (cause: unknown): string =>
@@ -47,7 +72,7 @@ const errorMessage = (cause: unknown): string =>
       : String(cause)
 
 /**
- * Owns one daily hunt: model loading, scoring flow, persistence, sharing.
+ * Owns one daily photo game: model loading, scoring flow, persistence, sharing.
  * Photos stay in memory + thumbnails in localStorage; nothing uploads.
  */
 export function useDailyGame(): DailyGame {
@@ -61,7 +86,17 @@ export function useDailyGame(): DailyGame {
   if (Option.isSome(promptEmbedding)) {
     ensureScorer()
   }
-  const status: GameStatus = Option.isNone(promptEmbedding) ? "prompt-error" : loader.status
+  const [scoring, setScoring] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [shared, setShared] = useState(false)
+  const [stats, setStats] = useState<Stats>(loadStats)
+  const [statusOverride, setStatusOverride] = useState<GameStatus | null>(null)
+  const [fractionOverride, setFractionOverride] = useState<number | null>(null)
+  const [errorOverride, setErrorOverride] = useState<string | null>(null)
+  const baseStatus: GameStatus = Option.isNone(promptEmbedding) ? "prompt-error" : loader.status
+  const status: GameStatus = statusOverride ?? baseStatus
+  const modelFraction = fractionOverride ?? loader.fraction
+  const modelError = errorOverride ?? loader.error
   const [day, setDay] = useState<DayState>(() => {
     const stored = loadStoredDay(today.dateKey)
     if (stored !== null && stored.day.promptId === today.prompt.id) {
@@ -76,10 +111,6 @@ export function useDailyGame(): DailyGame {
     }
     return []
   })
-  const [scoring, setScoring] = useState(false)
-  const [notice, setNotice] = useState<string | null>(null)
-  const [shared, setShared] = useState(false)
-  const [stats, setStats] = useState<Stats>(loadStats)
 
   const persist = useCallback(
     (next: DayState, nextThumbnails: ReadonlyArray<string>) => {
@@ -163,11 +194,72 @@ export function useDailyGame(): DailyGame {
   const open = canGuess(day)
   const latest = day.guesses[day.guesses.length - 1]
 
+  const addFakeGuess = useCallback(
+    (score: number) => {
+      if (!canGuess(day)) {
+        return
+      }
+      const clamped = Math.min(100, Math.max(0, Math.round(score)))
+      const temperature = temperatureFor(clamped)
+      persist(
+        recordGuess(day, {
+          score: clamped,
+          temperature,
+          clue: today.prompt.clues[temperature],
+          takenAt: Date.now(),
+        }),
+        [...thumbnails, fakeThumbnail(clamped)],
+      )
+    },
+    [day, thumbnails, persist, today.prompt.clues],
+  )
+
+  const solveNow = useCallback(() => {
+    addFakeGuess(92)
+  }, [addFakeGuess])
+
+  const fillFailed = useCallback(() => {
+    if (!canGuess(day)) {
+      return
+    }
+    const candidates = [8, 22, 38, 52, 64, 71]
+    const needed = MAX_GUESSES - day.guesses.length
+    let next = day
+    const nextThumbnails = [...thumbnails]
+    for (let index = 0; index < needed; index++) {
+      const clamped = candidates[(day.guesses.length + index) % candidates.length] ?? 12
+      const temperature = temperatureFor(clamped)
+      next = recordGuess(next, {
+        score: clamped,
+        temperature,
+        clue: today.prompt.clues[temperature],
+        takenAt: Date.now() + index,
+      })
+      nextThumbnails.push(fakeThumbnail(clamped))
+    }
+    persist(next, nextThumbnails)
+  }, [day, thumbnails, persist, today.prompt.clues])
+
+  const clearBoard = useCallback(() => {
+    setNotice(null)
+    setScoring(false)
+    setShared(false)
+    persist(newDay(today.dateKey, today.prompt.id), [])
+  }, [persist, today.dateKey, today.prompt.id])
+
+  const setNoticeText = useCallback((text: string | null) => {
+    setNotice(text)
+  }, [])
+
+  const setScoringNow = useCallback((next: boolean) => {
+    setScoring(next)
+  }, [])
+
   return {
     status,
     modelFile: loader.file,
-    modelFraction: loader.fraction,
-    modelError: loader.error,
+    modelFraction,
+    modelError,
     dayNumber,
     day,
     stats,
@@ -182,5 +274,17 @@ export function useDailyGame(): DailyGame {
     retryLoad,
     scorePhoto,
     share,
+    dev: {
+      addFakeGuess,
+      solveNow,
+      fillFailed,
+      clearBoard,
+      setNoticeText,
+      setScoringNow,
+      setStatusOverride,
+      setFractionOverride,
+      setErrorOverride,
+      statusOverride,
+    },
   }
 }

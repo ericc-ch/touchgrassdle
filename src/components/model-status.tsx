@@ -10,15 +10,19 @@ export interface ModelStatusProps {
   readonly onRetry: () => void
 }
 
-/** First-load model download (~55MB, cached after) or load failure. */
+/** First-load scorer download (~55MB, cached after) or load failure. */
 export function ModelStatus({ file, fraction, failed, error, onRetry }: ModelStatusProps) {
   if (failed) {
     return (
       <Card className="w-full">
         <CardHeader>
-          <CardTitle>Judge unavailable</CardTitle>
+          <CardTitle>Photo scorer unavailable</CardTitle>
           <CardDescription>
-            The on-device scorer failed to load. Check your connection and retry.
+            The{" "}
+            <abbr title="Compares your photo to today's hidden subject on this device, 0 to 100%.">
+              photo scorer
+            </abbr>{" "}
+            failed to load. Check your connection and retry.
             {error === null ? "" : ` (${error})`}
           </CardDescription>
         </CardHeader>
@@ -33,9 +37,19 @@ export function ModelStatus({ file, fraction, failed, error, onRetry }: ModelSta
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>Waking the judge…</CardTitle>
+        <CardTitle>Getting the photo scorer ready…</CardTitle>
         <CardDescription>
-          {file === null ? "Downloading the on-device scorer (once, then cached)." : file}
+          {file === null ? (
+            <>
+              Downloading the{" "}
+              <abbr title="Compares your photo to today's hidden subject on this device, 0 to 100%.">
+                photo scorer
+              </abbr>{" "}
+              (once, then saved on this device).
+            </>
+          ) : (
+            file
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent>

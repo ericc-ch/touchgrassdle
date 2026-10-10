@@ -6,13 +6,13 @@ graduated-to-e2e
 
 ## Sub-features
 
-- Scorer failure shows Judge-unavailable card with the error and Retry.
+- Scorer failure shows photo-scorer-unavailable card with the error and Retry.
 - Retry re-attempts loading; recovers when the model becomes available.
 
 ## How to get to it (user POV)
 
-First visit with no connection (or a broken model cache): the judge card
-explains and offers Retry instead of a dead board.
+First visit with no connection (or a broken model cache): the photo scorer
+card explains and offers Retry instead of a dead board.
 
 ## Driving it with Playwright
 
@@ -31,5 +31,5 @@ pnpm exec playwright test tests/e2e/model-error.spec.ts
 
 ## Promotion Criteria
 
-- [x] Error card with "Judge unavailable" + Retry button.
+- [x] Error card with "Photo scorer unavailable" + Retry button.
 - [x] Retry re-renders the error instead of hanging.

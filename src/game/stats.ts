@@ -6,7 +6,7 @@ export const STATS_VERSION = 1
 /** Non-negative integer for counters. */
 const Count = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))
 
-/** Guesses-used histogram: index 0 counts wins in 1 shot, … index 5 in 6. */
+/** Guesses-used histogram: index 0 counts wins in 1 photo, … index 5 in 6. */
 const Distribution = Schema.Tuple([Count, Count, Count, Count, Count, Count])
 
 /**

@@ -20,7 +20,7 @@ export interface HowToPlayDialogProps {
 }
 
 /**
- * First-visit onboarding: the rules plus the model download progress.
+ * First-visit onboarding: the rules plus the scorer download progress.
  * The scorer keeps loading underneath; Play enables once it is ready.
  */
 export function HowToPlayDialog({
@@ -34,11 +34,11 @@ export function HowToPlayDialog({
   onPlay,
 }: HowToPlayDialogProps) {
   const playLabel = ready
-    ? "Start hunting"
+    ? "Start playing"
     : fraction === null
-      ? "Loading the judge"
-      : `Loading the judge: ${Math.round(fraction * 100)}%`
-  const startLabel = ready ? "Start hunting" : "Loading the judge"
+      ? "Loading the photo scorer"
+      : `Loading the photo scorer: ${Math.round(fraction * 100)}%`
+  const startLabel = ready ? "Start playing" : "Loading the photo scorer"
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
@@ -46,27 +46,27 @@ export function HowToPlayDialog({
         <DialogHeader>
           <DialogTitle>How to play</DialogTitle>
           <DialogDescription>
-            You hunt one hidden prompt each day. You take photos outside to find it.
+            Find one hidden subject each day. Take photos outside to match it.
           </DialogDescription>
         </DialogHeader>
         <ol className="flex list-decimal flex-col gap-2 pl-5">
-          <li>Take up to 6 photos outside. You hunt the same prompt as everyone else.</li>
-          <li>Each photo scores 0 to 100. Hotter means closer. You get a clue with each score.</li>
-          <li>80 points solves the hunt. Your photos stay on this device.</li>
-          <li>Share your 6 squares with friends.</li>
+          <li>Take up to 6 photos outside. Everyone gets the same subject.</li>
+          <li>
+            Each photo gets a closeness score, 0 to 100%. Higher means closer. You get a hint with
+            each score.
+          </li>
+          <li>
+            80% or more finds it. Your photos stay on this device. The{" "}
+            <abbr title="Compares your photo to today's hidden subject on this device, 0 to 100%.">
+              photo scorer
+            </abbr>{" "}
+            runs here, not on a server.
+          </li>
+          <li>Share your 6 scores with friends.</li>
         </ol>
-        <div>
-          <p
-            aria-label="Temperature scale from coldest to hottest: Frozen, Cool, Warm, Hot, Blazing"
-            className="text-center text-lg tracking-wide"
-          >
-            🟦🟩🟨🟧🟥
-          </p>
-          <p className="text-center text-xs text-muted-foreground">Frozen to Blazing</p>
-        </div>
         {failed ? (
-          <div className="flex flex-col gap-2 rounded-lg border border-destructive/40 p-3">
-            <p className="text-sm font-medium">The judge cannot load.</p>
+          <div className="flex flex-col gap-2 border border-destructive/40 p-3">
+            <p className="text-sm font-medium">The photo scorer cannot load.</p>
             <p className="text-sm text-muted-foreground">
               Check your connection and select Retry.
               {error === null ? "" : ` Details: ${error}`}
@@ -77,13 +77,13 @@ export function HowToPlayDialog({
           </div>
         ) : ready ? (
           <p className="text-center text-xs text-muted-foreground">
-            The judge is ready. Your photos stay on this device.
+            The photo scorer is ready. Your photos stay on this device.
           </p>
         ) : (
           <div className="flex flex-col gap-2">
             <Progress value={fraction === null ? null : Math.round(fraction * 100)} />
             <p className="text-center text-xs text-muted-foreground">
-              The judge scores your photos on this device. The app downloads the judge once.
+              The photo scorer checks your photos on this device. The app downloads it once.
             </p>
           </div>
         )}

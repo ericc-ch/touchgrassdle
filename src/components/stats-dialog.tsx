@@ -54,7 +54,7 @@ export function StatsDialog({
           ))}
         </div>
         <div>
-          <h3 className="mb-2 text-sm font-semibold">Shots to solve</h3>
+          <h3 className="mb-2 text-sm font-semibold">Photos to solve</h3>
           <ol className="flex flex-col gap-1">
             {stats.byGuesses.map((count, index) => (
               <li className="flex items-center gap-2" key={index}>
@@ -72,7 +72,7 @@ export function StatsDialog({
         <div className="flex items-center justify-between gap-3 border-t pt-4">
           <div className="text-center">
             <div className="text-xs font-semibold tracking-wide text-muted-foreground">
-              NEXT HUNT
+              NEXT DAY
             </div>
             <div className="text-xl font-bold tabular-nums">{countdown}</div>
           </div>

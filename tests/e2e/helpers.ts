@@ -20,8 +20,8 @@ export function pixelPngPath(): string {
 
 /**
  * Load the app with a stubbed scorer (see `src/game/e2e-scorer.ts`).
- * `stub` scores every photo 7 (Frozen), `solve` scores 100 (Blazing),
- * `fail` shows Judge-unavailable. No model download, fully deterministic.
+ * `stub` scores every photo 7, `solve` scores 100,
+ * `fail` shows photo-scorer-unavailable. No model download, fully deterministic.
  * Dismisses the first-visit How to Play dialog, except in `fail` mode
  * where Play never enables (the dialog itself carries the Retry path).
  */
@@ -30,7 +30,7 @@ export async function gotoStub(page: Page, mode: "stub" | "solve" | "fail"): Pro
   if (mode === "fail") {
     return
   }
-  const start = page.getByRole("button", { name: "Start hunting", exact: true })
+  const start = page.getByRole("button", { name: "Start playing", exact: true })
   await start.waitFor({ timeout: 15_000 })
   await start.click()
 }

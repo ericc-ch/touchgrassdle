@@ -1,4 +1,4 @@
-/** Milliseconds from `now` until the next UTC midnight (the next hunt). */
+/** Milliseconds from `now` until the next UTC midnight (the next day). */
 export function msUntilNextDay(now: Date): number {
   const next = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1)
   return Math.max(0, next - now.getTime())

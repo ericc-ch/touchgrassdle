@@ -3,7 +3,7 @@ export const THUMBNAIL_EDGE = 640
 
 /**
  * Downscale a photo file to a JPEG thumbnail data URL.
- * Respects EXIF orientation so camera shots come out upright.
+ * Respects EXIF orientation so camera photos come out upright.
  */
 export async function fileToThumbnail(file: Blob): Promise<string> {
   const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" })

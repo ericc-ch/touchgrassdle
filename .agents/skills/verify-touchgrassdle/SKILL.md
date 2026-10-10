@@ -51,16 +51,21 @@ pnpm e2e
 ```
 
 Scorer modes via `?e2eScorer=` (see `src/game/e2e-scorer.ts`, query-gated,
-production untouched): `stub` scores every photo 7 Frozen, `solve` scores
-100 Blazing, `fail` forces Judge-unavailable. No model download.
+production untouched): `stub` scores every photo 7, `solve` scores 100,
+`fail` forces photo-scorer-unavailable. No model download.
 
 Stable handles (real selectors, no placeholders):
 
-- Headings `Touchgrassdle`, `/Hunt #\d+/`; buttons `/Shoot \(\d left\)/`,
+- Headings `Touchgrassdle`, `/Day #\d+/`; buttons `/Take photo \(\d left\)/`,
   `View statistics` (aria-label), `Share score` / `Copied!`, `Retry`;
-  titles `Dark theme`, `High contrast`; text `No shots yet…`, `Solved!`,
-  `Out of shots`, `Judge unavailable`, `/Next hunt in \d\d:\d\d:\d\d/`;
+  titles `Dark theme` / `Light theme` (single toggle); text
+  `No photos yet. Go outside and take one.`, `Found it!`, `Out of photos`,
+  `Photo scorer unavailable`, `/Next day in \d\d:\d\d:\d\d/`;
   hidden `input[type="file"]` driven with `setInputFiles` (works hidden).
+- Dev mode: type `HESOYAM` anywhere to toggle the control panel (also
+  `?dev=1`). Every button mutates the live board in place — `Solve now`,
+  `Fill to 6 (fail)`, `Add N%`, scorer-status `ToggleGroup`
+  (Real/Loading/Ready/Error/No prompt).
 - Share from inside the stats `dialog` (it overlays the SolvedCard).
 - Clipboard assertions need
   `context.grantPermissions(["clipboard-read", "clipboard-write"])`.
@@ -73,8 +78,9 @@ pnpm exec tsx .agents/skills/verify-touchgrassdle/scripts/evidence.ts
 ```
 
 Writes `.audit/evidence/board.png` (stub guess on the board),
-`.audit/evidence/solved.png` (reveal + share), `.audit/evidence/transcript.json`
-(URLs, console errors, storage keys, guess text, share card). Drive logs land
+`.audit/evidence/solved.png` (reveal + share), `.audit/evidence/dev.png`
+(dev panel + live `Found it!` after `Solve now`), `.audit/evidence/transcript.json`
+(URLs, console errors, storage keys, guess text, share card, dev proof). Drive logs land
 at `.audit/evidence/drive-<spec>.log`. Evidence survives cleanup.
 
 ## Cleanup
