@@ -54,7 +54,7 @@ Class-based toggle via `.dark` on the root element. In Next.js, use `next-themes
 ```tsx
 import { ThemeProvider } from "next-themes"
 
-;<ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+<ThemeProvider attribute="class" defaultTheme="system" enableSystem>
   {children}
 </ThemeProvider>
 ```
@@ -117,7 +117,8 @@ module.exports = {
     extend: {
       colors: {
         warning: "oklch(var(--warning) / <alpha-value>)",
-        "warning-foreground": "oklch(var(--warning-foreground) / <alpha-value>)",
+        "warning-foreground":
+          "oklch(var(--warning-foreground) / <alpha-value>)",
       },
     },
   },
@@ -134,6 +135,8 @@ module.exports = {
 ## Border Radius
 
 `--radius` controls border radius globally. Components derive values from it (`rounded-lg` = `var(--radius)`, `rounded-md` = `calc(var(--radius) - 2px)`).
+
+When a brand spec defines its own radius scale, pin each step in `@theme inline` (`--radius-sm` … `--radius-4xl`) instead of deriving from `--radius`. See [design-system.md](./design-system.md#radius).
 
 ---
 
