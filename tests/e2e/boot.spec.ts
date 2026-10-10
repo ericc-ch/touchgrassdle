@@ -14,7 +14,7 @@ test("boot shows the empty board with no console errors", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Touchgrassdle" })).toBeVisible()
   await expect(page.getByRole("heading", { name: /Day #\d+/ })).toBeVisible()
   await expect(page.getByRole("button", { name: /Take photo \(6 left\)/ })).toBeVisible()
-  await expect(page.getByText("No photos yet. Go outside and take one.")).toBeVisible()
+  await expect(page.getByText("Starting hint")).toBeVisible()
   await expect(page.getByTitle("Dark theme")).toBeVisible()
   expect(errors).toEqual([])
 })

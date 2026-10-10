@@ -1,14 +1,16 @@
 import { useCallback, useMemo, useState, useSyncExternalStore } from "react"
-import { Effect, Option } from "effect"
-import { promptEmbeddingFor } from "./embeddings.ts"
+import { Effect } from "effect"
 import { fileToThumbnail } from "./photo.ts"
 import { promptFor, shareDayNumber } from "./prompts.ts"
 import { MAX_GUESSES, cosineSimilarity, temperatureFor, toScore } from "./scoring.ts"
 import {
   EmbedError,
+  ensurePromptEmbedding,
   ensureScorer,
+  getPromptEmbeddingsSnapshot,
   getScorerSnapshot,
   retryScorer,
+  subscribePromptEmbeddings,
   subscribeScorer,
 } from "./scorer.ts"
 import { canGuess, isSolved, newDay, recordGuess, type DayState } from "./state.ts"
@@ -16,7 +18,7 @@ import { loadStats, recordDay, saveStats, type Stats } from "./stats.ts"
 import { formatShareCard } from "./share.ts"
 import { loadStoredDay, saveStoredDay } from "./storage.ts"
 
-export type GameStatus = "loading-model" | "ready" | "model-error" | "prompt-error"
+export type GameStatus = "loading-model" | "ready" | "model-error"
 
 export interface DailyGame {
   readonly status: GameStatus
@@ -78,14 +80,19 @@ const errorMessage = (cause: unknown): string =>
 export function useDailyGame(): DailyGame {
   const today = useMemo(() => promptFor(new Date()), [])
   const dayNumber = useMemo(() => shareDayNumber(new Date()), [])
-  const promptEmbedding = useMemo(() => promptEmbeddingFor(today.prompt.id), [today])
 
   // Shared scorer lifecycle: one load for all mounts, StrictMode-safe.
   // ensureScorer is idempotent; the store dedupes concurrent calls.
+  // Today's puzzle vector is encoded on-device once the text encoder
+  // is ready; the same dedupe pattern covers StrictMode remounts.
   const loader = useSyncExternalStore(subscribeScorer, getScorerSnapshot)
-  if (Option.isSome(promptEmbedding)) {
-    ensureScorer()
+  const promptStore = useSyncExternalStore(subscribePromptEmbeddings, getPromptEmbeddingsSnapshot)
+  ensureScorer()
+  if (loader.scorer !== null) {
+    ensurePromptEmbedding(today.prompt.id, today.prompt.query)
   }
+  const promptVector = promptStore.embeddings[today.prompt.id] ?? null
+  const promptError = promptStore.error
   const [scoring, setScoring] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [shared, setShared] = useState(false)
@@ -93,10 +100,19 @@ export function useDailyGame(): DailyGame {
   const [statusOverride, setStatusOverride] = useState<GameStatus | null>(null)
   const [fractionOverride, setFractionOverride] = useState<number | null>(null)
   const [errorOverride, setErrorOverride] = useState<string | null>(null)
-  const baseStatus: GameStatus = Option.isNone(promptEmbedding) ? "prompt-error" : loader.status
+  let baseStatus: GameStatus
+  if (loader.status === "model-error") {
+    baseStatus = "model-error"
+  } else if (promptError !== null) {
+    baseStatus = "model-error"
+  } else if (loader.status !== "ready" || promptVector === null) {
+    baseStatus = "loading-model"
+  } else {
+    baseStatus = "ready"
+  }
   const status: GameStatus = statusOverride ?? baseStatus
   const modelFraction = fractionOverride ?? loader.fraction
-  const modelError = errorOverride ?? loader.error
+  const modelError = errorOverride ?? loader.error ?? promptError
   const [day, setDay] = useState<DayState>(() => {
     const stored = loadStoredDay(today.dateKey)
     if (stored !== null && stored.day.promptId === today.prompt.id) {
@@ -139,12 +155,11 @@ export function useDailyGame(): DailyGame {
   const scorePhoto = useCallback(
     (file: File) => {
       const active = loader.scorer
-      if (active === null || Option.isNone(promptEmbedding) || scoring || !canGuess(day)) {
+      if (active === null || promptVector === null || scoring || !canGuess(day)) {
         return
       }
       setScoring(true)
       setNotice(null)
-      const promptVector = promptEmbedding.value
       void Effect.runPromise(
         Effect.gen(function* () {
           const thumbnail = yield* Effect.tryPromise({
@@ -175,7 +190,7 @@ export function useDailyGame(): DailyGame {
         },
       )
     },
-    [loader.scorer, promptEmbedding, scoring, day, thumbnails, persist, today.prompt.clues],
+    [loader.scorer, promptVector, scoring, day, thumbnails, persist, today.prompt.clues],
   )
 
   const share = useCallback(() => {

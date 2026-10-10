@@ -1,6 +1,4 @@
-import { Effect, Option } from "effect"
-import { promptEmbeddingFor } from "./embeddings.ts"
-import { promptFor } from "./prompts.ts"
+import { Effect } from "effect"
 import type { LoadedScorer } from "./scorer.ts"
 import type { Embedding } from "./scoring.ts"
 
@@ -9,10 +7,11 @@ import type { Embedding } from "./scoring.ts"
  * Production (no param) always loads the real on-device model.
  *
  * - `stub`: ready instantly, scores every photo 7. The 1-d
- *   vector mismatches the 768-d prompt embeddings, so cosine is 0 and
- *   the fixed logistic maps it to 7. No network, fully deterministic.
+ *   image vector mismatches the 768-d on-device prompt vector,
+ *   so cosine is 0 and the fixed logistic maps it to 7.
+ *   No network, fully deterministic.
  * - `solve`: ready instantly, scores every photo 100 by
- *   returning today's prompt embedding (cosine 1).
+ *   returning the same vector for image and prompt (cosine 1).
  * - `fail`: fails instantly with `ModelLoadError`, exercising the
  *   photo-scorer-unavailable + Retry path without downloading anything.
  */
@@ -29,17 +28,20 @@ export function readE2EScorerMode(): E2EScorerMode | null {
 
 const COLD_VECTOR: Embedding = [1]
 
+/** Stands in for today's on-device text embedding. */
+const STUB_PROMPT_VECTOR: Embedding = Array.from({ length: 768 }, (_, index) =>
+  index === 0 ? 1 : 0,
+)
+
 /** Instant scorer for `stub` / `solve` modes. No network involved. */
 export function e2eStubScorer(mode: "stub" | "solve"): LoadedScorer {
   return {
     embedImage: () => {
       if (mode === "solve") {
-        const embedding = promptEmbeddingFor(promptFor(new Date()).prompt.id)
-        if (Option.isSome(embedding)) {
-          return Effect.succeed(embedding.value)
-        }
+        return Effect.succeed(STUB_PROMPT_VECTOR)
       }
       return Effect.succeed(COLD_VECTOR)
     },
+    embedText: () => Effect.succeed(STUB_PROMPT_VECTOR),
   }
 }

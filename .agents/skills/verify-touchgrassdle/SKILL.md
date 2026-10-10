@@ -59,7 +59,7 @@ Stable handles (real selectors, no placeholders):
 - Headings `Touchgrassdle`, `/Day #\d+/`; buttons `/Take photo \(\d left\)/`,
   `View statistics` (aria-label), `Share score` / `Copied!`, `Retry`;
   titles `Dark theme` / `Light theme` (single toggle); text
-  `No photos yet. Go outside and take one.`, `Found it!`, `Out of photos`,
+  `Starting hint`, `Found it!`, `Out of photos`,
   `Photo scorer unavailable`, `/Next day in \d\d:\d\d:\d\d/`;
   hidden `input[type="file"]` driven with `setInputFiles` (works hidden).
 - Dev mode: type `HESOYAM` anywhere to toggle the control panel (also

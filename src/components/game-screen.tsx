@@ -42,16 +42,6 @@ export function GameScreen() {
     }
   }
 
-  if (game.status === "prompt-error") {
-    return (
-      <Alert variant="destructive">
-        <AlertDescription>
-          Prompt data is missing. Rebuild the app to regenerate embeddings.
-        </AlertDescription>
-      </Alert>
-    )
-  }
-
   const ready = game.status === "ready"
   const failed = game.status === "model-error"
   const loading = !ready
@@ -145,7 +135,11 @@ export function GameScreen() {
             </Alert>
           ) : null}
 
-          <GuessList day={game.day} thumbnails={game.thumbnails} />
+          <GuessList
+            day={game.day}
+            initialHint={today.prompt.clues.frozen}
+            thumbnails={game.thumbnails}
+          />
 
           <HowToPlayDialog
             error={game.modelError}

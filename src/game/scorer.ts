@@ -1,5 +1,11 @@
 import { Data, Effect, Option } from "effect"
-import { AutoProcessor, RawImage, SiglipVisionModel } from "@huggingface/transformers"
+import {
+  AutoProcessor,
+  AutoTokenizer,
+  RawImage,
+  SiglipTextModel,
+  SiglipVisionModel,
+} from "@huggingface/transformers"
 import { e2eStubScorer, readE2EScorerMode } from "./e2e-scorer.ts"
 import { parseEmbedding, type Embedding } from "./scoring.ts"
 
@@ -20,6 +26,7 @@ export interface ModelFileProgress {
 
 export interface LoadedScorer {
   readonly embedImage: (photo: Blob) => Effect.Effect<Embedding, EmbedError>
+  readonly embedText: (text: string) => Effect.Effect<Embedding, EmbedError>
 }
 
 const failLoad = (cause: unknown): ModelLoadError =>
@@ -32,7 +39,12 @@ interface VisionOutput {
   readonly pooler_output: { tolist(): unknown }
 }
 
+interface TextOutput {
+  readonly pooler_output: { tolist(): unknown }
+}
+
 const asVisionOutput = (value: unknown): VisionOutput => value as VisionOutput
+const asTextOutput = (value: unknown): TextOutput => value as TextOutput
 
 /** Lifecycle of the shared scorer load. Session-level prompt errors live elsewhere. */
 export type ScorerStatus = "loading-model" | "ready" | "model-error"
@@ -73,6 +85,67 @@ export function getScorerSnapshot(): ScorerSnapshot {
   return snapshot
 }
 
+/** Today's puzzle vector, encoded on-device and cached per prompt id. */
+export interface PromptEmbeddingsSnapshot {
+  readonly embeddings: Readonly<Record<string, Embedding>>
+  readonly error: string | null
+}
+
+let promptSnapshot: PromptEmbeddingsSnapshot = { embeddings: {}, error: null }
+const promptListeners = new Set<() => void>()
+const promptInflight = new Set<string>()
+
+function emitPrompt(next: PromptEmbeddingsSnapshot): void {
+  promptSnapshot = next
+  for (const listener of promptListeners) {
+    listener()
+  }
+}
+
+export function subscribePromptEmbeddings(listener: () => void): () => void {
+  promptListeners.add(listener)
+  return () => {
+    promptListeners.delete(listener)
+  }
+}
+
+export function getPromptEmbeddingsSnapshot(): PromptEmbeddingsSnapshot {
+  return promptSnapshot
+}
+
+/**
+ * Encode one prompt query with the loaded text encoder. Idempotent per id:
+ * render calls it freely, but only one encode ever runs per prompt.
+ */
+export function ensurePromptEmbedding(id: string, query: string): void {
+  if (
+    typeof window === "undefined" ||
+    promptSnapshot.embeddings[id] !== undefined ||
+    promptInflight.has(id)
+  ) {
+    return
+  }
+  const current = snapshot
+  if (current.status !== "ready" || current.scorer === null) {
+    return
+  }
+  const scorer = current.scorer
+  promptInflight.add(id)
+  void Effect.runPromise(scorer.embedText(query)).then(
+    (vector) => {
+      promptInflight.delete(id)
+      emitPrompt({ embeddings: { ...promptSnapshot.embeddings, [id]: vector }, error: null })
+    },
+    (cause: unknown) => {
+      promptInflight.delete(id)
+      emitPrompt({
+        embeddings: { ...promptSnapshot.embeddings },
+        error: cause instanceof Error ? cause.message : String(cause),
+      })
+    },
+  )
+}
+
 function reportProgress(progress: ModelFileProgress): void {
   if (snapshot.status !== "loading-model") {
     return
@@ -108,6 +181,10 @@ export function ensureScorer(): void {
 
 /** Retry after a failure. No-op unless currently errored. */
 export function retryScorer(): void {
+  if (snapshot.status !== "model-error" && promptSnapshot.error === null) {
+    return
+  }
+  emitPrompt({ embeddings: { ...promptSnapshot.embeddings }, error: null })
   if (snapshot.status !== "model-error") {
     return
   }
@@ -131,11 +208,13 @@ const progressCallback =
   }
 
 /**
- * Load the on-device vision encoder plus the image processor.
+ * Load the on-device encoders plus the image processor.
  * Prefers WebGPU when an adapter exists, otherwise goes straight to WASM.
  * (The fallback must be chosen up front: transformers chains session
  * creation on one shared promise, so a failed first attempt poisons
  * any later retry in the same page.)
+ * The text encoder runs today's prompt query on-device, so no
+ * precomputed embedding ships with the app.
  */
 export const loadScorer = Effect.fn("loadScorer")(function* (
   onProgress: (progress: ModelFileProgress) => void,
@@ -150,6 +229,11 @@ export const loadScorer = Effect.fn("loadScorer")(function* (
 
   const processor = yield* Effect.tryPromise({
     try: () => AutoProcessor.from_pretrained(MODEL_ID),
+    catch: failLoad,
+  })
+
+  const tokenizer = yield* Effect.tryPromise({
+    try: () => AutoTokenizer.from_pretrained(MODEL_ID),
     catch: failLoad,
   })
 
@@ -178,7 +262,18 @@ export const loadScorer = Effect.fn("loadScorer")(function* (
     },
     catch: failLoad,
   })
-  const vision = yield* loadVision(adapter === null ? "wasm" : "webgpu")
+  const device = adapter === null ? "wasm" : "webgpu"
+  const vision = yield* loadVision(device)
+
+  const textModel = yield* Effect.tryPromise({
+    try: () =>
+      SiglipTextModel.from_pretrained(MODEL_ID, {
+        dtype: "q4f16",
+        device,
+        progress_callback: progressCallback(onProgress),
+      }),
+    catch: failLoad,
+  })
 
   const embedImage = (photo: Blob): Effect.Effect<Embedding, EmbedError> =>
     Effect.gen(function* () {
@@ -205,5 +300,31 @@ export const loadScorer = Effect.fn("loadScorer")(function* (
       return parsed.value
     })
 
-  return { embedImage }
+  const embedText = (text: string): Effect.Effect<Embedding, EmbedError> =>
+    Effect.gen(function* () {
+      const inputs = yield* Effect.try({
+        try: () =>
+          tokenizer([text], {
+            padding: "max_length",
+            truncation: true,
+            max_length: 64,
+          }),
+        catch: failEmbed,
+      })
+      const output = asTextOutput(
+        yield* Effect.tryPromise({
+          try: () => textModel(inputs),
+          catch: failEmbed,
+        }),
+      )
+      const rows = output.pooler_output.tolist() as ReadonlyArray<unknown>
+      const first = rows[0]
+      const parsed = parseEmbedding(first)
+      if (Option.isNone(parsed)) {
+        return yield* new EmbedError({ message: "text model returned an unusable embedding" })
+      }
+      return parsed.value
+    })
+
+  return { embedImage, embedText }
 })

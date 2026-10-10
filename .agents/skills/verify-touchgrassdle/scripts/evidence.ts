@@ -54,10 +54,7 @@ async function main(): Promise<void> {
     await page.getByRole("button", { name: /Take photo \(6 left\)/ }).waitFor({ timeout: 30_000 })
     await page.locator('input[type="file"]').setInputFiles(pixel)
     await page.locator("li", { hasText: "7% close" }).first().waitFor({ timeout: 30_000 })
-    transcript["stubGuess"] = await page
-      .locator("li", { hasText: "7% close" })
-      .first()
-      .innerText()
+    transcript["stubGuess"] = await page.locator("li", { hasText: "7% close" }).first().innerText()
     transcript["storageKeys"] = await page.evaluate(() => Object.keys(window.localStorage))
     await page.screenshot({ path: join(OUT, "board.png"), scale: "css" })
 
@@ -94,7 +91,7 @@ async function main(): Promise<void> {
     await page.keyboard.press("Escape")
     await dialog.waitFor({ state: "detached", timeout: 10_000 })
     await devPanel.getByRole("button", { name: "Clear board" }).click()
-    await board.getByText("No photos yet. Go outside and take one.").waitFor({ timeout: 10_000 })
+    await board.getByText("Starting hint").waitFor({ timeout: 10_000 })
     await devPanel.getByRole("button", { name: "Error scorer status" }).click()
     await board.getByText("Photo scorer unavailable").waitFor({ timeout: 10_000 })
     transcript["devErrorStatus"] = "Photo scorer unavailable"

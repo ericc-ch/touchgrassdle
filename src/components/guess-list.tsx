@@ -4,15 +4,21 @@ import type { DayState } from "@/game/state.ts"
 export interface GuessListProps {
   readonly day: DayState
   readonly thumbnails: ReadonlyArray<string>
+  readonly initialHint: string
 }
 
 /** Scored guesses, newest last, each with its photo, closeness %, and hint. */
-export function GuessList({ day, thumbnails }: GuessListProps) {
+export function GuessList({ day, thumbnails, initialHint }: GuessListProps) {
   if (day.guesses.length === 0) {
     return (
-      <p className="text-center text-sm text-muted-foreground">
-        No photos yet. Go outside and take one.
-      </p>
+      <Card>
+        <CardContent className="flex flex-col gap-1 p-3">
+          <span className="text-sm font-semibold">Starting hint</span>
+          <p className="break-words text-sm whitespace-pre-wrap text-muted-foreground">
+            {initialHint}
+          </p>
+        </CardContent>
+      </Card>
     )
   }
   return (

@@ -17,7 +17,6 @@ const STATUS_VALUE: Record<GameStatus, string> = {
   "loading-model": "loading",
   ready: "ready",
   "model-error": "error",
-  "prompt-error": "prompt",
 }
 
 function clearDevStorage(): void {
@@ -62,14 +61,10 @@ export function DevDrawer({ game, promptLabel, promptId, onHowTo, onStats }: Dev
       dev.setStatusOverride("ready")
       dev.setFractionOverride(null)
       dev.setErrorOverride(null)
-    } else if (next === "error") {
+    } else {
       dev.setStatusOverride("model-error")
       dev.setFractionOverride(null)
       dev.setErrorOverride("Demo scorer failure")
-    } else {
-      dev.setStatusOverride("prompt-error")
-      dev.setFractionOverride(null)
-      dev.setErrorOverride(null)
     }
   }
 
@@ -156,9 +151,6 @@ export function DevDrawer({ game, promptLabel, promptId, onHowTo, onStats }: Dev
               </ToggleGroupItem>
               <ToggleGroupItem aria-label="Error scorer status" value="error">
                 Error
-              </ToggleGroupItem>
-              <ToggleGroupItem aria-label="Missing prompt status" value="prompt">
-                No prompt
               </ToggleGroupItem>
             </ToggleGroup>
             <div className="flex flex-wrap gap-2">

@@ -10,7 +10,7 @@ verified-via-evidence
   enables it; session-scoped, never ships visually).
 - Every button mutates the live board in place: `Add N%`, `Solve now`,
   `Fill to 6 (fail)`, `Clear board`, scorer-status `ToggleGroup`
-  (Real/Loading/Ready/Error/No prompt), checking-spinner toggle, sample
+  (Real/Loading/Ready/Error), checking-spinner toggle, sample
   notice, dialogs, share, storage clear + reload.
 - Dev-injected guesses use gray SVG placeholder thumbnails and record stats
   through the same path as real guesses (idempotent per dateKey).
