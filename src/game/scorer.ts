@@ -6,7 +6,7 @@ import {
   RawImage,
 } from "@huggingface/transformers"
 import { e2eStubScorer, readE2EScorerMode } from "./e2e-scorer.ts"
-import { nextFile, nextFraction, parseEmbedding, type Embedding } from "./scoring.ts"
+import { parseEmbedding, type Embedding } from "./scoring.ts"
 
 export const MODEL_ID = "onnx-community/embeddinggemma-2-ONNX"
 
@@ -40,14 +40,12 @@ interface EmbeddingOutput {
 
 const asEmbeddingOutput = (value: unknown): EmbeddingOutput => value as EmbeddingOutput
 
-/** Lifecycle of the shared scorer load. Session-level prompt errors live elsewhere. */
+/** Lifecycle of the shared scorer load. */
 export type ScorerStatus = "loading-model" | "ready" | "model-error"
 
 export interface ScorerSnapshot {
   readonly status: ScorerStatus
   readonly scorer: LoadedScorer | null
-  readonly file: string | null
-  readonly fileAt: number | null
   readonly fraction: number | null
   readonly error: string | null
 }
@@ -55,13 +53,12 @@ export interface ScorerSnapshot {
 let snapshot: ScorerSnapshot = {
   status: "loading-model",
   scorer: null,
-  file: null,
-  fileAt: null,
   fraction: null,
   error: null,
 }
 const snapshotListeners = new Set<() => void>()
 let loadStarted = false
+let seenFraction = 0
 
 function emit(next: ScorerSnapshot): void {
   snapshot = next
@@ -146,20 +143,19 @@ function reportProgress(progress: ModelFileProgress): void {
   if (snapshot.status !== "loading-model") {
     return
   }
-  // High-water bar plus a throttled file label: per-file fractions interleave
-  // and the raw stream flickers backwards several times a second. No emit
-  // unless something actually changed.
-  const fraction = nextFraction(snapshot.fraction, progress.fraction)
-  const shown = snapshot.file === null ? null : { file: snapshot.file, at: snapshot.fileAt ?? 0 }
-  const next = nextFile(shown, {
-    file: progress.file,
-    complete: progress.fraction >= 1,
-    at: Date.now(),
-  })
-  if (fraction === snapshot.fraction && next.file === snapshot.file) {
+  // One unified bar: the highest fraction seen so far, capped below 100%
+  // until the load actually finishes (per-file fractions hit 1.0 when each
+  // file completes, which faked a full bar mid-download). Per-file fractions
+  // arrive interleaved, so the raw stream would also jump backwards — the
+  // bar only ever climbs. No emit unless it rose.
+  const fraction = Number.isFinite(progress.fraction)
+    ? Math.min(0.99, Math.max(0, progress.fraction))
+    : 0
+  if (fraction <= seenFraction) {
     return
   }
-  emit({ ...snapshot, file: next.file, fileAt: next.at, fraction })
+  seenFraction = fraction
+  emit({ ...snapshot, fraction })
 }
 
 /**
@@ -194,14 +190,13 @@ export function retryScorer(): void {
     return
   }
   emitPrompt({ embeddings: { ...promptSnapshot.embeddings }, error: null })
+  seenFraction = 0
   if (snapshot.status !== "model-error") {
     return
   }
   emit({
     status: "loading-model",
     scorer: null,
-    file: null,
-    fileAt: null,
     fraction: null,
     error: null,
   })

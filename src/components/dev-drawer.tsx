@@ -103,6 +103,14 @@ export function DevDrawer({ game, promptLabel, promptId, onHowTo, onStats }: Dev
             </Button>
             <Button
               disabled={boardLocked}
+              onClick={() => dev.addFakeGuess(40)}
+              size="sm"
+              variant="outline"
+            >
+              Add 40%
+            </Button>
+            <Button
+              disabled={boardLocked}
               onClick={() => dev.addFakeGuess(58)}
               size="sm"
               variant="outline"

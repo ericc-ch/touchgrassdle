@@ -58,52 +58,6 @@ export function toScore(cosine: number): Score {
 }
 
 /**
- * Monotonic load progress for the UI. Multi-file downloads report one
- * fraction per file, so the raw numbers jump backwards as files interleave
- * (and the bar + % text flicker). The UI shows only the high-water mark,
- * which can only rise. Pure for testing.
- *
- * @example
- * ```ts
- * nextFraction(0.5, 0.2) // 0.5
- * ```
- */
-export function nextFraction(shown: number | null, incoming: number): number {
-  const clamped = Number.isFinite(incoming) ? Math.min(1, Math.max(0, incoming)) : 0
-  return shown === null ? clamped : Math.max(shown, clamped)
-}
-
-/**
- * Calm file label for the loader. Progress events interleave across files,
- * so the raw label flickers several times a second. The shown label switches
- * to a new file at most once per 1.5s — unless the incoming file just
- * finished, which always cuts through. Pure for testing (`now` injected).
- */
-export interface ShownFile {
-  readonly file: string
-  readonly at: number
-}
-
-export interface FileEvent {
-  readonly file: string
-  readonly complete: boolean
-  readonly at: number
-}
-
-export function nextFile(shown: ShownFile | null, event: FileEvent): ShownFile {
-  if (shown === null) {
-    return { file: event.file, at: event.at }
-  }
-  if (event.file === shown.file) {
-    return shown
-  }
-  if (event.complete || event.at - shown.at >= 1500) {
-    return { file: event.file, at: event.at }
-  }
-  return shown
-}
-
-/**
  * Cosine similarity of two vectors.
  * Returns 0 for empty or mismatched vectors; the scorer service
  * rejects dimension mismatches as errors instead of scoring them.

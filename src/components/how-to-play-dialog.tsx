@@ -7,6 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Progress } from "@/components/ui/progress"
+import { ScorerTerm } from "./scorer-term.tsx"
 
 export interface HowToPlayDialogProps {
   readonly open: boolean
@@ -56,11 +57,8 @@ export function HowToPlayDialog({
             each score.
           </li>
           <li>
-            80% or more finds it. Your photos stay on this device. The{" "}
-            <abbr title="Compares your photo to today's hidden subject on this device, 0 to 100%.">
-              photo scorer
-            </abbr>{" "}
-            runs here, not on a server.
+            80% or more finds it. Your photos stay on this device. The <ScorerTerm /> runs here, not
+            on a server.
           </li>
           <li>Share your 6 scores with friends.</li>
         </ol>

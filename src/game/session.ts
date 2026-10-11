@@ -22,7 +22,6 @@ export type GameStatus = "loading-model" | "ready" | "model-error"
 
 export interface DailyGame {
   readonly status: GameStatus
-  readonly modelFile: string | null
   readonly modelFraction: number | null
   readonly modelError: string | null
   readonly dayNumber: number
@@ -272,7 +271,6 @@ export function useDailyGame(): DailyGame {
 
   return {
     status,
-    modelFile: loader.file,
     modelFraction,
     modelError,
     dayNumber,
