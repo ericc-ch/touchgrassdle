@@ -63,8 +63,8 @@ export function GameScreen() {
 
   return (
     <div className="flex h-dvh flex-col">
-      <header className="shrink-0 border-b px-4">
-        <div className="mx-auto flex w-full max-w-md items-center justify-between gap-2 py-2.5">
+      <header className="shrink-0 border-b">
+        <div className="mx-auto flex w-full max-w-md items-center justify-between gap-2 px-4 py-2.5">
           <h1 className="text-lg font-bold tracking-tight">Touchgrassdle</h1>
           <nav aria-label="Game" className="flex items-center gap-0.5">
             <Button
@@ -87,8 +87,8 @@ export function GameScreen() {
           </nav>
         </div>
       </header>
-      <main className="flex min-h-0 flex-1 flex-col items-center">
-        <div className="flex h-full w-full max-w-md flex-col gap-3 px-4 pt-3">
+      <main className="flex min-h-0 flex-1 flex-col">
+        <div className="mx-auto flex h-full w-full max-w-md flex-col gap-2 px-4 pt-3">
           <div className="flex shrink-0 items-center justify-between">
             <h2 className="text-sm font-semibold">Day #{game.dayNumber}</h2>
             <span className="text-sm text-muted-foreground">
@@ -98,8 +98,8 @@ export function GameScreen() {
             </span>
           </div>
 
-          <Card className="shrink-0">
-            <CardContent className="flex flex-col gap-1 p-3">
+          <Card className="shrink-0 py-2" size="sm">
+            <CardContent className="flex flex-col gap-0.5">
               <span className="text-sm font-semibold">Starting hint</span>
               <p className="break-words text-sm whitespace-pre-wrap text-muted-foreground">
                 {today.prompt.clues.frozen}
