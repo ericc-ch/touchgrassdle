@@ -1,3 +1,62 @@
 {
-  "ignorePatterns": [".agents/skills/**"]
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": [".agents/skills/**"],
+  "plugins": ["import", "oxc", "promise", "unicorn", "typescript"],
+  "rules": {
+    "class-methods-use-this": "error",
+    "default-case": "error",
+    "default-case-last": "error",
+    "default-param-last": "error",
+    "max-params": "error",
+    "no-bitwise": "error",
+    "no-duplicate-imports": "error",
+    "no-param-reassign": "error",
+    "no-regex-spaces": "error",
+    "yoda": "error",
+    "import/no-commonjs": "error",
+    "import/no-cycle": "error",
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "react",
+            "importNames": ["useEffect"],
+            "message": "useEffect is banned: synchronize with useSyncExternalStore, derive during render, or move work into event handlers. Truly external one-shots need a justified oxlint-disable."
+          }
+        ]
+      }
+    ],
+    "oxc/bad-bitwise-operator": "error",
+    "oxc/no-accumulating-spread": "error",
+    "oxc/no-const-enum": "error",
+    "oxc/no-map-spread": "error",
+    "promise/catch-or-return": ["error", { "allowFinally": true }],
+    "promise/spec-only": "error",
+    "typescript/array-type": ["error", { "default": "generic" }],
+    "typescript/no-deprecated": "error",
+    "typescript/no-dynamic-delete": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/no-namespace": "error",
+    "typescript/use-unknown-in-catch-callback-variable": "error",
+    "unicorn/no-abusive-eslint-disable": "error",
+    "unicorn/no-array-for-each": "error",
+    "unicorn/no-document-cookie": "error",
+    "unicorn/no-length-as-slice-end": "error",
+    "unicorn/no-magic-array-flat-depth": "error",
+    "unicorn/prefer-array-find": "error",
+    "unicorn/prefer-array-flat-map": "error",
+    "unicorn/prefer-modern-math-apis": "error",
+    "unicorn/prefer-node-protocol": "error",
+    "unicorn/prefer-number-properties": "error",
+    "unicorn/prefer-set-has": "error"
+  },
+  "overrides": [
+    {
+      "files": ["src/components/ui/**"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ]
 }
