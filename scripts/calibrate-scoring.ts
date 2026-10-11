@@ -19,7 +19,7 @@ import { cosineSimilarity, toScore } from "../src/game/scoring.ts"
  */
 const MODEL_ID = "onnx-community/embeddinggemma-2-ONNX"
 
-const OUT = join(tmpdir(), "touchgrassdle-calib")
+const OUT = join(tmpdir(), "snapdle-calib")
 mkdirSync(OUT, { recursive: true })
 
 /**

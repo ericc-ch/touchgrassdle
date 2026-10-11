@@ -9,7 +9,7 @@ const PIXEL_PNG =
 
 /** 1px PNG for capture uploads, written once per machine to the OS temp dir. */
 export function pixelPngPath(): string {
-  const path = join(tmpdir(), "touchgrassdle-pixel.png")
+  const path = join(tmpdir(), "snapdle-pixel.png")
   try {
     writeFileSync(path, Buffer.from(PIXEL_PNG, "base64"), { flag: "wx" })
   } catch {

@@ -26,7 +26,7 @@ export const EMPTY_SQUARE = "⬛"
  *
  * @example
  * ```ts
- * formatShareCard(12, day) // "Touchgrassdle #12 4/6 · best 92\n🟨🟦🟧🟥⬛⬛"
+ * formatShareCard(12, day) // "Snapdle #12 4/6 · best 92\n🟨🟦🟧🟥⬛⬛"
  * ```
  */
 export function formatShareCard(dayNumber: number, day: DayState): string {
@@ -34,5 +34,5 @@ export function formatShareCard(dayNumber: number, day: DayState): string {
   const tally = solved ? `${day.guesses.length}` : "X"
   const squares = day.guesses.map((guess) => squareFor(guess.temperature)).join("")
   const padding = EMPTY_SQUARE.repeat(MAX_GUESSES - day.guesses.length)
-  return `Touchgrassdle #${dayNumber} ${tally}/6 · best ${bestScore(day)}\n${squares}${padding}`
+  return `Snapdle #${dayNumber} ${tally}/6 · best ${bestScore(day)}\n${squares}${padding}`
 }

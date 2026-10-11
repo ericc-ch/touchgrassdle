@@ -7,7 +7,7 @@ graduated-to-e2e
 ## Sub-features
 
 - SolvedCard: "Found it!" + subject reveal + best % + ticking countdown.
-- Share: clipboard card `Touchgrassdle #N 1/6 · best 100` + squares, no photos.
+- Share: clipboard card `Snapdle #N 1/6 · best 100` + squares, no photos.
 - StatsDialog auto-opens on day end with totals, histogram, countdown, share.
 - Stats idempotent per UTC dateKey (reload records nothing twice).
 
@@ -35,6 +35,6 @@ so one upload solves. Clipboard needs
 ## Promotion Criteria
 
 - [x] Solved reveal shows label, photos used, best %.
-- [x] Share card starts with `Touchgrassdle #`, has `1/6` and `🟥`.
+- [x] Share card starts with `Snapdle #`, has `1/6` and `🟥`.
 - [x] Stats dialog auto-opens with Played 1 after solving.
 - [x] Reload keeps Found it! and `played` at 1.

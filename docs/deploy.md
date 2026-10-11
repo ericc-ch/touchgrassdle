@@ -1,7 +1,7 @@
 # Deploy
 
 Static site on Cloudflare Workers via Alchemy (`alchemy.run.ts`, v2
-Effect style). Prod domain: `touchgrassdle.ericc.ch` (zone adopted,
+Effect style). Prod domain: `snapdle.ericc.ch` (zone adopted,
 DNS + cert automatic).
 
 ## Commands
@@ -42,7 +42,7 @@ The first deploy design used an R2 bucket for the wasm and was later
 removed in favor of the CDN default. Undeclaring a non-empty bucket
 fails the deploy with `BucketNotEmpty` and still drops its state
 entry, so re-declaring it later creates a fresh bucket instead of
-reusing the old one. Stray `touchgrassdle-wasm-*` buckets are
+reusing the old one. Stray `snapdle-wasm-*` buckets are
 untracked orphans: private, pennies at most, safe to delete from the
 dashboard (empty first, then delete the bucket).
 
@@ -51,4 +51,4 @@ dashboard (empty first, then delete the bucket).
 `/` is the only unversioned path, so it is the only stale-prone
 entry. After changing response headers, purge it or the edge keeps
 serving the old copy: dashboard Caching → Purge Cache → Custom Purge
-→ `touchgrassdle.ericc.ch/` (exact URL purge, no blast radius).
+→ `snapdle.ericc.ch/` (exact URL purge, no blast radius).

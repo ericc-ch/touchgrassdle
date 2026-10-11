@@ -11,4 +11,4 @@ command, not ad-hoc steps.
 | Theme (single toggle, zero radius)                         | `tests/e2e/theme.spec.ts`                           | graduated-to-e2e |
 | Model error + retry                                         | `tests/e2e/model-error.spec.ts`                     | graduated-to-e2e |
 | Real-model proof (cold load, match beats non-match)       | `scripts/proof-real-model.js` (playwriter)          | deterministic    |
-| Dev mode (HESOYAM controls, live board)                   | `scripts/evidence.ts` (`dev.png` + transcript)      | verified-via-evidence |
+| Dev mode (theme-tap trigger, live board)                  | `tests/e2e/dev-mode.spec.ts`, `scripts/evidence.ts` | verified-via-evidence |

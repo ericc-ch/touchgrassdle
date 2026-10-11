@@ -10,7 +10,7 @@ import { formatCountdown, msUntilNextDay } from "@/game/countdown.ts"
 import { promptFor } from "@/game/prompts.ts"
 import { hasSeenHowTo, markSeenHowTo } from "@/game/storage.ts"
 import { ThemeSwitch } from "@/theme/switch.tsx"
-import { useDevMode } from "@/game/dev-cheat.ts"
+import { noteThemeTap, useDevMode } from "@/game/dev-mode.ts"
 import { CaptureButton } from "./capture-button.tsx"
 import { DevDrawer } from "./dev-drawer.tsx"
 import { GuessList } from "./guess-list.tsx"
@@ -65,7 +65,7 @@ export function GameScreen() {
     <div className="flex h-dvh flex-col">
       <header className="shrink-0 border-b">
         <div className="mx-auto flex w-full max-w-md items-center justify-between gap-2 px-4 py-2.5">
-          <h1 className="text-lg font-bold tracking-tight">Touchgrassdle</h1>
+          <h1 className="text-lg font-bold tracking-tight">Snapdle</h1>
           <nav aria-label="Game" className="flex items-center gap-0.5">
             <Button
               aria-label="How to play"
@@ -83,7 +83,7 @@ export function GameScreen() {
             >
               <ChartColumn />
             </Button>
-            <ThemeSwitch />
+            <ThemeSwitch onToggle={noteThemeTap} />
           </nav>
         </div>
       </header>
@@ -125,7 +125,7 @@ export function GameScreen() {
           {game.notice !== null ? (
             <Alert
               className="shrink-0"
-              variant={game.notice.startsWith("Touchgrassdle") ? "default" : "destructive"}
+              variant={game.notice.startsWith("Snapdle") ? "default" : "destructive"}
             >
               <AlertDescription className="break-words whitespace-pre-wrap">
                 {game.notice}

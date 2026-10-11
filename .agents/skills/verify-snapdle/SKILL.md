@@ -1,18 +1,18 @@
 ---
-name: verify-touchgrassdle
-description: Drive the Touchgrassdle daily photo game in a real browser, capture proof, and graduate workflows into Playwright E2E.
+name: verify-snapdle
+description: Drive the Snapdle daily photo game in a real browser, capture proof, and graduate workflows into Playwright E2E.
 ---
 
-# Verify Touchgrassdle
+# Verify Snapdle
 
-Temporary verification harness for Touchgrassdle (Vite + React SPA, port
+Temporary verification harness for Snapdle (Vite + React SPA, port
 4173 preview / 5173 dev). Unit tests (`src/**/*.test.ts`) cover pure game
 logic only; everything below covers the untested gap: real browser behavior.
 
 ## Launch
 
 ```bash
-.agents/skills/verify-touchgrassdle/scripts/launch.sh
+.agents/skills/verify-snapdle/scripts/launch.sh
 ```
 
 Builds (`tsc -b && vite build`) and starts `vite preview` on
@@ -34,7 +34,7 @@ cached after in per-origin Cache Storage; stub modes avoid it entirely.
 Read-only. Run before driving:
 
 ```bash
-.agents/skills/verify-touchgrassdle/scripts/doctor.sh
+.agents/skills/verify-snapdle/scripts/doctor.sh
 ```
 
 Checks: PID file exists, process alive, port 4173 answers HTTP 200,
@@ -47,7 +47,7 @@ Two layers. Prefer the native specs; use the evidence script for screenshots.
 
 ```bash
 # One graduated workflow (default: guess). Probes helium for E2E_BROWSER.
-.agents/skills/verify-touchgrassdle/scripts/drive.sh [boot|guess|day-end|theme|model-error]
+.agents/skills/verify-snapdle/scripts/drive.sh [boot|guess|day-end|theme|model-error]
 # Full native suite (also the CI shape).
 pnpm e2e
 ```
@@ -58,16 +58,18 @@ production untouched): `stub` scores every photo 0, `solve` scores 100,
 
 Stable handles (real selectors, no placeholders):
 
-- Headings `Touchgrassdle`, `/Day #\d+/`; buttons `/Take photo \(\d left\)/`,
+- Headings `Snapdle`, `/Day #\d+/`; buttons `/Take photo \(\d left\)/`,
   `View statistics` (aria-label), `Share score` / `Copied!`, `Retry`;
   titles `Dark theme` / `Light theme` (single toggle); text
   `Starting hint`, `Found it!`, `Out of photos`,
   `Photo scorer unavailable`, `/Next day in \d\d:\d\d:\d\d/`;
   hidden `input[type="file"]` driven with `setInputFiles` (works hidden).
-- Dev mode: type `HESOYAM` anywhere to toggle the control panel (also
-  `?dev=1`). Every button mutates the live board in place — `Solve now`,
+- Dev mode: tap the theme switch 10 times quickly to toggle the control
+  panel (a pause over 1.5s resets the count; `?dev=1` also works). Every
+  button mutates the live board in place, grouped by phase — `Solve now`,
   `Fill to 6 (fail)`, `Add N%`, scorer-status `ToggleGroup`
-  (Real/Loading/Ready/Error).
+  (Real/Loading/Ready/Error), loading-bar fractions (0/11/50/99%).
+  See `tests/e2e/dev-mode.spec.ts`.
 - Share from inside the stats `dialog` (it overlays the SolvedCard).
 - Clipboard assertions need
   `context.grantPermissions(["clipboard-read", "clipboard-write"])`.
@@ -100,15 +102,15 @@ Rules (learned the hard way):
   non-match photo on the day's object, `RESULT … pass=true`.
 
 ```bash
-playwriter session new --tab-group touchgrassdle  # note the id, use as -s
-playwriter -s <id> --timeout 600000 -f .agents/skills/verify-touchgrassdle/scripts/proof-real-model.js
+playwriter session new --tab-group snapdle  # note the id, use as -s
+playwriter -s <id> --timeout 600000 -f .agents/skills/verify-snapdle/scripts/proof-real-model.js
 playwriter session delete <id>
 ```
 
 ## Evidence
 
 ```bash
-pnpm exec tsx .agents/skills/verify-touchgrassdle/scripts/evidence.ts
+pnpm exec tsx .agents/skills/verify-snapdle/scripts/evidence.ts
 ```
 
 Writes `.audit/evidence/board.png` (stub guess on the board),
@@ -120,7 +122,7 @@ at `.audit/evidence/drive-<spec>.log`. Evidence survives cleanup.
 ## Cleanup
 
 ```bash
-.agents/skills/verify-touchgrassdle/scripts/cleanup.sh
+.agents/skills/verify-snapdle/scripts/cleanup.sh
 ```
 
 Kills only the PID in `.audit/verify.pid`, removes the file, lists

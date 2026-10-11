@@ -5,7 +5,7 @@ import { Stack } from "alchemy/Stack"
 import * as Effect from "effect/Effect"
 
 export default Alchemy.Stack(
-  "touchgrassdle",
+  "snapdle",
   {
     providers: Cloudflare.providers(),
     state: Cloudflare.state(),
@@ -30,7 +30,7 @@ export default Alchemy.Stack(
       },
       // The custom domain lives on prod only; other stages keep their
       // workers.dev URL so cold-cache experiments never touch DNS.
-      ...(stack.stage === "prod" ? { domain: "touchgrassdle.ericc.ch" } : {}),
+      ...(stack.stage === "prod" ? { domain: "snapdle.ericc.ch" } : {}),
     })
 
     return {

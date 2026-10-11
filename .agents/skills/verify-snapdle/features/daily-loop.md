@@ -9,13 +9,14 @@ graduated-to-e2e
 - Boot: header, Day number, empty board, theme switch, zero console errors.
 - Capture: hidden file input scores a photo, 0% closeness card with hint and
   thumbnail; photos-left decrements.
-- Persistence: day + thumbnails under `touchgrassdle:v1:day:<dateKey>`;
+- Persistence: day + thumbnails under `snapdle:v1:day:<dateKey>`;
   board intact across reload.
 
 ## How to get to it (user POV)
 
-Open the app, tap Take photo (or Upload a photo instead), pick a photo.
-Each guess shows its closeness % and a hint nudging toward the hidden subject.
+Open the app, tap Take photo, pick a photo (on mobile the OS sheet offers
+camera or gallery). Each guess shows its closeness % and a hint nudging
+toward the hidden subject.
 
 ## Driving it with Playwright
 

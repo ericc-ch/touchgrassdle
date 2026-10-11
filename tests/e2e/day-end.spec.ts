@@ -18,13 +18,13 @@ test("solving shows reveal, share card, stats, and stays solved", async ({ page,
 
   await dialog.getByRole("button", { name: "Share score" }).click()
   const shared = await page.evaluate(() => window.navigator.clipboard.readText())
-  expect(shared.startsWith("Touchgrassdle #")).toBe(true)
+  expect(shared.startsWith("Snapdle #")).toBe(true)
   expect(shared).toContain("1/6")
   expect(shared).toContain("🟥")
 
   // Reload records nothing twice: still solved, still played once.
   await page.reload()
   await expect(page.getByText("Found it!")).toBeVisible()
-  const stats = await page.evaluate(() => window.localStorage.getItem("touchgrassdle:v1:stats"))
+  const stats = await page.evaluate(() => window.localStorage.getItem("snapdle:v1:stats"))
   expect(stats ?? "").toContain('"played":1')
 })

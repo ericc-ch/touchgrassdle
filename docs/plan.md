@@ -1,4 +1,4 @@
-# Touchgrassdle: hot/cold (DEV touch grass entry)
+# Snapdle: hot/cold (DEV touch grass entry)
 
 name picked 2026-10-09; "photo hunt" was the working name.
 daily hidden-prompt photo game, like contexto but with your camera. you go outside and shoot things, each photo tells you how close you are to the secret prompt, plus a small clue. web app.
@@ -41,7 +41,7 @@ hub (weeks 2-4): https://dev.to/challenges/hf26
 local model means anyone can fake it. doesn't matter, it's a game for fun.
 
 - no global leaderboard, friends only
-- light friction: camera capture only (no gallery)
+- light friction: any photo, from the native camera or the gallery
 
 ## prior art (cite in post)
 

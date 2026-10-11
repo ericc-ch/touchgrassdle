@@ -1,12 +1,13 @@
 import { useSyncExternalStore } from "react"
 
-const CODE = "HESOYAM"
-const STORAGE_KEY = "touchgrassdle:dev"
+const TAPS_PER_TOGGLE = 10
+const TAP_GAP_MS = 1500
+const STORAGE_KEY = "snapdle:dev"
 
 let listeners: ReadonlySet<() => void> = new Set()
 let enabled = false
-let buffer = ""
-let lastKeyAt = 0
+let taps = 0
+let lastTapAt = 0
 
 function notify(): void {
   for (const listener of listeners) {
@@ -44,35 +45,31 @@ function setEnabled(next: boolean): void {
   notify()
 }
 
-function onKeyDown(event: KeyboardEvent): void {
-  const key = event.key
-  if (key.length !== 1 || !/[a-z]/i.test(key)) {
-    return
-  }
+/** Count one tap on the theme switch. Ten quick taps toggle dev mode. */
+export function noteThemeTap(): void {
   const now = Date.now()
-  if (now - lastKeyAt > 1500) {
-    buffer = ""
+  if (now - lastTapAt > TAP_GAP_MS) {
+    taps = 0
   }
-  lastKeyAt = now
-  buffer = `${buffer}${key.toUpperCase()}`.slice(-CODE.length)
-  if (buffer === CODE) {
-    buffer = ""
+  lastTapAt = now
+  taps += 1
+  if (taps >= TAPS_PER_TOGGLE) {
+    taps = 0
     setEnabled(!enabled)
   }
 }
 
-let wired = false
-function ensureWired(): void {
-  if (wired || typeof window === "undefined") {
+let initialized = false
+function ensureInitialized(): void {
+  if (initialized || typeof window === "undefined") {
     return
   }
-  wired = true
+  initialized = true
   enabled = readInitial()
-  window.addEventListener("keydown", onKeyDown)
 }
 
 function subscribe(listener: () => void): () => void {
-  ensureWired()
+  ensureInitialized()
   const next = new Set(listeners)
   next.add(listener)
   listeners = next
@@ -84,11 +81,11 @@ function subscribe(listener: () => void): () => void {
 }
 
 function getSnapshot(): boolean {
-  ensureWired()
+  ensureInitialized()
   return enabled
 }
 
-/** True once the HESOYAM cheat code (or ?dev=1) enables dev mode. Typing it again toggles off. */
+/** True once ten quick theme-switch taps (or `?dev=1`) enable dev mode. */
 export function useDevMode(): boolean {
   return useSyncExternalStore(subscribe, getSnapshot)
 }

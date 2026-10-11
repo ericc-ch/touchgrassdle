@@ -3,13 +3,13 @@
  * Drives the skill's preview instance (port 4173, see launch.sh) with a
  * stubbed scorer and writes screenshots + transcript to .audit/evidence/.
  *
- * Run: `pnpm exec tsx .agents/skills/verify-touchgrassdle/scripts/evidence.ts`
+ * Run: `pnpm exec tsx .agents/skills/verify-snapdle/scripts/evidence.ts`
  */
 import { mkdirSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { execSync } from "node:child_process"
-import { chromium } from "@playwright/test"
+import { chromium, type Page } from "@playwright/test"
 
 const ORIGIN = "http://127.0.0.1:4173"
 const OUT = join(process.cwd(), ".audit", "evidence")
@@ -27,9 +27,16 @@ function browserPath(): string | undefined {
   }
 }
 
+async function tapThemeSwitch(page: Page, times: number): Promise<void> {
+  const toggle = page.getByRole("button", { name: /^Switch to (light|dark) theme$/ })
+  for (let index = 0; index < times; index++) {
+    await toggle.click()
+  }
+}
+
 async function main(): Promise<void> {
   mkdirSync(OUT, { recursive: true })
-  const pixel = join(tmpdir(), "touchgrassdle-pixel.png")
+  const pixel = join(tmpdir(), "snapdle-pixel.png")
   writeFileSync(pixel, Buffer.from(PIXEL_PNG, "base64"), { flag: "w" })
 
   const executablePath = browserPath()
@@ -73,16 +80,16 @@ async function main(): Promise<void> {
     transcript["shareCard"] = await page.evaluate(() => window.navigator.clipboard.readText())
     await page.screenshot({ path: join(OUT, "solved.png"), scale: "css" })
 
-    // Dev mode drives the live board in place: fresh day, HESOYAM panel,
-    // Solve now flips the real board, Error status flips the scorer card.
+    // Dev mode drives the live board in place: fresh day, ten quick theme
+    // taps, Solve now flips the real board, Error status flips the scorer card.
     await page.goto(`${ORIGIN}/?e2eScorer=stub`, { waitUntil: "domcontentloaded" })
     await page.evaluate(() => window.localStorage.clear())
     await page.reload({ waitUntil: "domcontentloaded" })
     const start = page.getByRole("button", { name: "Start playing", exact: true })
     await start.waitFor({ timeout: 30_000 })
     await start.click()
-    await page.keyboard.type("HESOYAM")
-    await page.getByText("Dev mode · HESOYAM").waitFor({ timeout: 10_000 })
+    await tapThemeSwitch(page, 10)
+    await page.getByRole("heading", { name: "Dev mode", exact: true }).waitFor({ timeout: 10_000 })
     const devPanel = page.getByLabel("Developer mode")
     await devPanel.getByRole("button", { name: "Solve now" }).click()
     const board = page.locator("main")
@@ -96,8 +103,10 @@ async function main(): Promise<void> {
     await board.getByText("Photo scorer unavailable").waitFor({ timeout: 10_000 })
     transcript["devErrorStatus"] = "Photo scorer unavailable"
     await page.screenshot({ path: join(OUT, "dev.png"), scale: "css" })
-    await page.keyboard.type("HESOYAM")
-    await page.getByText("Dev mode · HESOYAM").waitFor({ state: "detached", timeout: 10_000 })
+    await tapThemeSwitch(page, 10)
+    await page
+      .getByRole("heading", { name: "Dev mode", exact: true })
+      .waitFor({ state: "detached", timeout: 10_000 })
     transcript["devToggleOff"] = true
 
     transcript["consoleErrors"] = errors

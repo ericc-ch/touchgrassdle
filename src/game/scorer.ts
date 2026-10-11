@@ -6,6 +6,7 @@ import {
   RawImage,
 } from "@huggingface/transformers"
 import { e2eStubScorer, readE2EScorerMode } from "./e2e-scorer.ts"
+import { createModelProgress, SCORER_TOTALS } from "./model-progress.ts"
 import { parseEmbedding, type Embedding } from "./scoring.ts"
 
 export const MODEL_ID = "onnx-community/embeddinggemma-2-ONNX"
@@ -18,9 +19,10 @@ export class EmbedError extends Data.TaggedError("EmbedError")<{
   readonly message: string
 }> {}
 
-export interface ModelFileProgress {
+/** One file's bytes-loaded report from transformers.js. */
+export interface ModelFileReport {
   readonly file: string
-  readonly fraction: number
+  readonly loaded: number
 }
 
 export interface LoadedScorer {
@@ -58,7 +60,10 @@ let snapshot: ScorerSnapshot = {
 }
 const snapshotListeners = new Set<() => void>()
 let loadStarted = false
-let seenFraction = 0
+const progress = createModelProgress()
+let emittedPercent = -1
+let tickTimer: ReturnType<typeof setInterval> | null = null
+let lastTickAt = 0
 
 function emit(next: ScorerSnapshot): void {
   snapshot = next
@@ -139,23 +144,52 @@ export function ensurePromptEmbedding(id: string, query: string): void {
   )
 }
 
-function reportProgress(progress: ModelFileProgress): void {
+/** Emit at most once per whole percent: stable label, fewer renders. */
+function emitProgress(fraction: number): void {
+  const percent = Math.round(fraction * 100)
+  if (percent <= emittedPercent) {
+    return
+  }
+  emittedPercent = percent
+  emit({ ...snapshot, fraction })
+}
+
+function reportProgress(update: ModelFileReport): void {
   if (snapshot.status !== "loading-model") {
     return
   }
-  // One unified bar: the highest fraction seen so far, capped below 100%
-  // until the load actually finishes (per-file fractions hit 1.0 when each
-  // file completes, which faked a full bar mid-download). Per-file fractions
-  // arrive interleaved, so the raw stream would also jump backwards — the
-  // bar only ever climbs. No emit unless it rose.
-  const fraction = Number.isFinite(progress.fraction)
-    ? Math.min(0.99, Math.max(0, progress.fraction))
-    : 0
-  if (fraction <= seenFraction) {
+  progress.report(update.file, update.loaded)
+  emitProgress(progress.value())
+}
+
+/**
+ * The bar's creep toward the cap, on a 500ms tick. Real byte progress is a
+ * lower bound; the creep keeps the bar visibly moving through network stalls
+ * and the silent session compile at the end, like a classic installer bar.
+ * It approaches the cap asymptotically and never falls.
+ */
+function startTicking(): void {
+  if (tickTimer !== null) {
     return
   }
-  seenFraction = fraction
-  emit({ ...snapshot, fraction })
+  lastTickAt = performance.now()
+  tickTimer = setInterval(() => {
+    const now = performance.now()
+    // Clamp the step so a backgrounded tab returning does not jump the bar.
+    const deltaSeconds = Math.min((now - lastTickAt) / 1000, 10)
+    lastTickAt = now
+    if (snapshot.status === "loading-model") {
+      emitProgress(progress.tick(deltaSeconds))
+    }
+  }, 500)
+}
+
+function stopTicking(): void {
+  if (tickTimer === null) {
+    return
+  }
+  clearInterval(tickTimer)
+  tickTimer = null
 }
 
 /**
@@ -168,13 +202,16 @@ export function ensureScorer(): void {
     return
   }
   loadStarted = true
+  startTicking()
   void Effect.runPromise(loadScorer(reportProgress)).then(
     (loaded) => {
       loadStarted = false
+      stopTicking()
       emit({ ...snapshot, status: "ready", scorer: loaded, error: null })
     },
     (cause: unknown) => {
       loadStarted = false
+      stopTicking()
       emit({
         ...snapshot,
         status: "model-error",
@@ -190,7 +227,7 @@ export function retryScorer(): void {
     return
   }
   emitPrompt({ embeddings: { ...promptSnapshot.embeddings }, error: null })
-  seenFraction = 0
+  emittedPercent = -1
   if (snapshot.status !== "model-error") {
     return
   }
@@ -203,20 +240,19 @@ export function retryScorer(): void {
   ensureScorer()
 }
 
-const progressCallback =
-  (onProgress: (progress: ModelFileProgress) => void) => (update: unknown) => {
-    if (typeof update !== "object" || update === null) {
-      return
-    }
-    const record = update as Record<string, unknown>
-    if (
-      record["status"] === "progress" &&
-      typeof record["file"] === "string" &&
-      typeof record["progress"] === "number"
-    ) {
-      onProgress({ file: record["file"], fraction: record["progress"] / 100 })
-    }
+const progressCallback = (onProgress: (update: ModelFileReport) => void) => (update: unknown) => {
+  if (typeof update !== "object" || update === null) {
+    return
   }
+  const record = update as Record<string, unknown>
+  if (
+    record["status"] === "progress" &&
+    typeof record["file"] === "string" &&
+    typeof record["loaded"] === "number"
+  ) {
+    onProgress({ file: record["file"], loaded: record["loaded"] })
+  }
+}
 
 /**
  * Load the on-device EmbeddingGemma 2 encoders plus the multimodal processor.
@@ -228,7 +264,7 @@ const progressCallback =
  * any later retry in the same page.)
  */
 export const loadScorer = Effect.fn("loadScorer")(function* (
-  onProgress: (progress: ModelFileProgress) => void,
+  onProgress: (update: ModelFileReport) => void,
 ): Effect.fn.Return<LoadedScorer, ModelLoadError> {
   const e2e = readE2EScorerMode()
   if (e2e === "fail") {
@@ -237,20 +273,6 @@ export const loadScorer = Effect.fn("loadScorer")(function* (
   if (e2e !== null) {
     return e2eStubScorer(e2e)
   }
-
-  const config = yield* Effect.tryPromise({
-    try: () => AutoConfig.from_pretrained(MODEL_ID),
-    catch: failLoad,
-  })
-  // The game never scores audio: dropping the encoder keeps it off the
-  // first-load download entirely. The base config type hides model-specific
-  // keys, hence the narrow cast.
-  ;(config as unknown as { audio_config: unknown }).audio_config = null
-
-  const processor = yield* Effect.tryPromise({
-    try: () => AutoProcessor.from_pretrained(MODEL_ID),
-    catch: failLoad,
-  })
 
   const adapter = yield* Effect.tryPromise({
     try: async () => {
@@ -267,6 +289,27 @@ export const loadScorer = Effect.fn("loadScorer")(function* (
     catch: failLoad,
   })
   const device = adapter === null ? "wasm" : "webgpu"
+  // The size of the whole download is known before the first byte moves, so
+  // the bar can count the tokenizer phase (about a tenth of the WebGPU bytes)
+  // too.
+  progress.begin(SCORER_TOTALS[device])
+
+  const config = yield* Effect.tryPromise({
+    try: () => AutoConfig.from_pretrained(MODEL_ID),
+    catch: failLoad,
+  })
+  // The game never scores audio: dropping the encoder keeps it off the
+  // first-load download entirely. The base config type hides model-specific
+  // keys, hence the narrow cast.
+  ;(config as unknown as { audio_config: unknown }).audio_config = null
+
+  const processor = yield* Effect.tryPromise({
+    try: () =>
+      AutoProcessor.from_pretrained(MODEL_ID, {
+        progress_callback: progressCallback(onProgress),
+      }),
+    catch: failLoad,
+  })
   // Block-quantized weights (q4f16/q4/quantized) need GatherBlockQuantized
   // + MatMulNBits kernels that the WASM CPU build does not ship (proven by
   // an on-device "Kernel not found" failure). WASM therefore loads fp16:

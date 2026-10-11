@@ -90,7 +90,7 @@ export function winPercent(stats: Stats): number {
   return Math.round((stats.wins / stats.played) * 100)
 }
 
-const STATS_KEY = `touchgrassdle:v${STATS_VERSION}:stats`
+const STATS_KEY = `snapdle:v${STATS_VERSION}:stats`
 
 /** Load stats, or fresh stats when missing, corrupt, or unreadable. */
 export function loadStats(): Stats {

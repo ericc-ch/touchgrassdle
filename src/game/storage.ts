@@ -12,19 +12,16 @@ export const StoredDay = Schema.Struct({
 })
 export type StoredDay = typeof StoredDay.Type
 
-/** Storage schema version. Bump when stored shapes change; readers fall back to the legacy unversioned day key. */
+/** Storage schema version. Bump when stored shapes change. */
 export const STORAGE_VERSION = "v1"
 
-const keyFor = (dateKey: string): string => `touchgrassdle:${STORAGE_VERSION}:day:${dateKey}`
-const legacyKeyFor = (dateKey: string): string => `touchgrassdle:day:${dateKey}`
-const seenHowToKey = `touchgrassdle:${STORAGE_VERSION}:seenHowTo`
+const keyFor = (dateKey: string): string => `snapdle:${STORAGE_VERSION}:day:${dateKey}`
+const seenHowToKey = `snapdle:${STORAGE_VERSION}:seenHowTo`
 
 /** Load a stored day, or null when missing, corrupt, or unreadable. */
 export function loadStoredDay(dateKey: string): StoredDay | null {
   try {
-    const raw =
-      window.localStorage.getItem(keyFor(dateKey)) ??
-      window.localStorage.getItem(legacyKeyFor(dateKey))
+    const raw = window.localStorage.getItem(keyFor(dateKey))
     if (raw === null) {
       return null
     }

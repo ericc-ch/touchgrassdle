@@ -29,7 +29,7 @@ Clicks the `Dark theme` title, polls `dataset`, reloads, re-asserts dataset
 
 - Assert `documentElement.dataset`, not body classes — theming rides
   `data-theme` on `<html>`.
-- Storage key is `touchgrassdle:theme` (unversioned, unlike day/stats keys).
+- Storage key is `snapdle:theme` (unversioned, unlike day/stats keys).
 
 ## Promotion Criteria
 

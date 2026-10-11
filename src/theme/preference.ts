@@ -9,7 +9,7 @@ export const EffectiveTheme = Schema.Literals(["light", "dark"])
 export type EffectiveTheme = typeof EffectiveTheme.Type
 
 /** localStorage key for the persisted preference. */
-export const STORAGE_KEY = "touchgrassdle:theme"
+export const STORAGE_KEY = "snapdle:theme"
 
 /**
  * Parse a stored preference value.

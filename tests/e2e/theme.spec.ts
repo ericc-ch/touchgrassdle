@@ -14,9 +14,9 @@ test("theme toggle persists across reload", async ({ page }) => {
   await expect
     .poll(() => page.evaluate(() => window.document.documentElement.dataset["theme"]))
     .toBe("dark")
-  await expect(
-    page.evaluate(() => window.localStorage.getItem("touchgrassdle:theme")),
-  ).resolves.toBe("dark")
+  await expect(page.evaluate(() => window.localStorage.getItem("snapdle:theme"))).resolves.toBe(
+    "dark",
+  )
 
   await page.getByTitle("Light theme").click()
   await expect

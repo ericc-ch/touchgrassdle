@@ -17,11 +17,11 @@ describe("formatShareCard", () => {
     let day = newDay("2026-10-09", "exit-sign")
     day = recordGuess(day, { score: 55, temperature: "warm", takenAt: 0 })
     day = recordGuess(day, { score: 92, temperature: "blazing", takenAt: 0 })
-    expect(formatShareCard(12, day)).toBe("Touchgrassdle #12 2/6 · best 92\n🟨🟥⬛⬛⬛⬛")
+    expect(formatShareCard(12, day)).toBe("Snapdle #12 2/6 · best 92\n🟨🟥⬛⬛⬛⬛")
   })
 
   it("marks unsolved days X/6", () => {
     const day = newDay("2026-10-09", "exit-sign")
-    expect(formatShareCard(12, day)).toBe("Touchgrassdle #12 X/6 · best 0\n⬛⬛⬛⬛⬛⬛")
+    expect(formatShareCard(12, day)).toBe("Snapdle #12 X/6 · best 0\n⬛⬛⬛⬛⬛⬛")
   })
 })

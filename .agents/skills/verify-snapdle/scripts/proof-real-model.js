@@ -8,19 +8,19 @@
  * Needs a dev server or preview already serving the app (see SKILL.md).
  * Uses a throwaway 127.0.0.1 page; the user's tabs and day are untouched.
  *
- * Photo fixtures: /tmp/touchgrassdle-calib/<prompt>-<0|1>.jpg, written by
+ * Photo fixtures: /tmp/snapdle-calib/<prompt>-<0|1>.jpg, written by
  * scripts/calibrate-scoring.ts. If a fixture is missing, re-run that script
  * (weights cached, only the missing photo step matters) or swap in any
  * clearly-matching / clearly-wrong JPEG and update the paths below.
  */
 const ORIGIN = "http://127.0.0.1:5173/";
-const MATCH_PHOTO = "/tmp/touchgrassdle-calib/bicycle-0.jpg";
-const NON_PHOTO = "/tmp/touchgrassdle-calib/sleeping-cat-0.jpg";
+const MATCH_PHOTO = "/tmp/snapdle-calib/bicycle-0.jpg";
+const NON_PHOTO = "/tmp/snapdle-calib/sleeping-cat-0.jpg";
 // Proving the preview (4173) instead of dev: change ORIGIN to
 // "http://127.0.0.1:4173/". Proving a different day: MATCH_PHOTO must
 // depict that day's object (see promptIndexFor in src/game/prompts.ts);
 // every object has fixtures from scripts/calibrate-scoring.ts.
-const SHOT = "/home/erickc/projects/touchgrassdle/.audit/evidence/pw-eg2-proof.png";
+const SHOT = "/home/erickc/projects/snapdle/.audit/evidence/pw-eg2-proof.png";
 
 state.page = await context.newPage();
 await state.page.goto(ORIGIN, { waitUntil: "domcontentloaded" });

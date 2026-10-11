@@ -26,8 +26,8 @@ SKILL.md). Needs a server already up — their `pnpm dev` (5173) or the
 skill preview (4173, `launch.sh`):
 
 ```bash
-playwriter session new --tab-group touchgrassdle  # note the id
-playwriter -s <id> --timeout 600000 -f .agents/skills/verify-touchgrassdle/scripts/proof-real-model.js
+playwriter session new --tab-group snapdle  # note the id
+playwriter -s <id> --timeout 600000 -f .agents/skills/verify-snapdle/scripts/proof-real-model.js
 # expect: READY, MATCH "18% close…", NON "1% close…", RESULT … pass=true
 playwriter session delete <id>  # after closing the proof page
 ```

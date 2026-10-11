@@ -13,7 +13,7 @@ test("capture scores a 0% guess and it survives reload", async ({ page }) => {
   await expect(page.getByRole("button", { name: /Take photo \(5 left\)/ })).toBeVisible()
 
   const keys = await page.evaluate(() => Object.keys(window.localStorage))
-  expect(keys.some((key) => key.startsWith("touchgrassdle:v1:day:"))).toBe(true)
+  expect(keys.some((key) => key.startsWith("snapdle:v1:day:"))).toBe(true)
 
   await page.reload()
   await expect(page.locator("li", { hasText: "0% close" }).first()).toBeVisible()
