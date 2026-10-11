@@ -213,8 +213,6 @@ const progressCallback =
  * (The fallback must be chosen up front: transformers chains session
  * creation on one shared promise, so a failed first attempt poisons
  * any later retry in the same page.)
- * The text encoder runs today's prompt query on-device, so no
- * precomputed embedding ships with the app.
  */
 export const loadScorer = Effect.fn("loadScorer")(function* (
   onProgress: (progress: ModelFileProgress) => void,
