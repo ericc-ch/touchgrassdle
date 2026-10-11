@@ -6,7 +6,7 @@ import {
   RawImage,
 } from "@huggingface/transformers"
 import { e2eStubScorer, readE2EScorerMode } from "./e2e-scorer.ts"
-import { nextFraction, parseEmbedding, type Embedding } from "./scoring.ts"
+import { nextFile, nextFraction, parseEmbedding, type Embedding } from "./scoring.ts"
 
 export const MODEL_ID = "onnx-community/embeddinggemma-2-ONNX"
 
@@ -47,6 +47,7 @@ export interface ScorerSnapshot {
   readonly status: ScorerStatus
   readonly scorer: LoadedScorer | null
   readonly file: string | null
+  readonly fileAt: number | null
   readonly fraction: number | null
   readonly error: string | null
 }
@@ -55,6 +56,7 @@ let snapshot: ScorerSnapshot = {
   status: "loading-model",
   scorer: null,
   file: null,
+  fileAt: null,
   fraction: null,
   error: null,
 }
@@ -144,13 +146,20 @@ function reportProgress(progress: ModelFileProgress): void {
   if (snapshot.status !== "loading-model") {
     return
   }
-  // One high-water mark across all files: per-file fractions interleave and
-  // would make the UI flicker backwards. No emit unless it actually rose.
+  // High-water bar plus a throttled file label: per-file fractions interleave
+  // and the raw stream flickers backwards several times a second. No emit
+  // unless something actually changed.
   const fraction = nextFraction(snapshot.fraction, progress.fraction)
-  if (fraction === snapshot.fraction) {
+  const shown = snapshot.file === null ? null : { file: snapshot.file, at: snapshot.fileAt ?? 0 }
+  const next = nextFile(shown, {
+    file: progress.file,
+    complete: progress.fraction >= 1,
+    at: Date.now(),
+  })
+  if (fraction === snapshot.fraction && next.file === snapshot.file) {
     return
   }
-  emit({ ...snapshot, file: progress.file, fraction })
+  emit({ ...snapshot, file: next.file, fileAt: next.at, fraction })
 }
 
 /**
@@ -188,7 +197,14 @@ export function retryScorer(): void {
   if (snapshot.status !== "model-error") {
     return
   }
-  emit({ status: "loading-model", scorer: null, file: null, fraction: null, error: null })
+  emit({
+    status: "loading-model",
+    scorer: null,
+    file: null,
+    fileAt: null,
+    fraction: null,
+    error: null,
+  })
   ensureScorer()
 }
 
@@ -256,11 +272,16 @@ export const loadScorer = Effect.fn("loadScorer")(function* (
     catch: failLoad,
   })
   const device = adapter === null ? "wasm" : "webgpu"
+  // Block-quantized weights (q4f16/q4/quantized) need GatherBlockQuantized
+  // + MatMulNBits kernels that the WASM CPU build does not ship (proven by
+  // an on-device "Kernel not found" failure). WASM therefore loads fp16:
+  // standard + fused norm/attention/rope ops only, at ~3x the bytes.
+  const dtype = device === "webgpu" ? "q4f16" : "fp16"
 
   const model = yield* Effect.tryPromise({
     try: () =>
       EmbeddingGemma2Model.from_pretrained(MODEL_ID, {
-        dtype: "q4f16",
+        dtype,
         device,
         config,
         progress_callback: progressCallback(onProgress),

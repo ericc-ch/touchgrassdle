@@ -25,8 +25,9 @@ preview up (pid 12345)
 
 Ports: 4173 preview (skill), 5173 dev (`pnpm dev`, unrelated, may run
 alongside). No auth, no env vars, no seed data. First real-model load
-downloads ~290MB (157MB text + 98MB vision + 32MB tokenizer, no audio;
-cached after in per-origin Cache Storage); stub modes avoid it entirely.
+downloads weights per device (WebGPU: q4f16 ~290MB; WASM: fp16 ~910MB —
+the WASM build lacks the block-quantized kernels; no audio on either),
+cached after in per-origin Cache Storage; stub modes avoid it entirely.
 
 ## Doctor
 

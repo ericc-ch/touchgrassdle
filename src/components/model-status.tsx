@@ -3,14 +3,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress"
 
 export interface ModelStatusProps {
+  readonly file: string | null
   readonly fraction: number | null
   readonly failed: boolean
   readonly error: string | null
   readonly onRetry: () => void
 }
 
-/** First-load scorer download (~290MB, cached after) or load failure. */
-export function ModelStatus({ fraction, failed, error, onRetry }: ModelStatusProps) {
+/** First-load scorer download (cached after) or load failure. */
+export function ModelStatus({ file, fraction, failed, error, onRetry }: ModelStatusProps) {
   if (failed) {
     return (
       <Card className="w-full">
@@ -45,7 +46,8 @@ export function ModelStatus({ fraction, failed, error, onRetry }: ModelStatusPro
           (once, then saved on this device).
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex flex-col gap-2 p-3 pt-0">
+        {file === null ? null : <p className="truncate text-xs text-muted-foreground">{file}</p>}
         <Progress value={fraction === null ? null : Math.round(fraction * 100)} />
       </CardContent>
     </Card>

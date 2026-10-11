@@ -116,6 +116,7 @@ export function GameScreen() {
               <ModelStatus
                 error={game.modelError}
                 failed={failed}
+                file={game.modelFile}
                 fraction={game.modelFraction}
                 onRetry={game.retryLoad}
               />

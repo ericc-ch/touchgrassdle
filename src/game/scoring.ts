@@ -74,6 +74,36 @@ export function nextFraction(shown: number | null, incoming: number): number {
 }
 
 /**
+ * Calm file label for the loader. Progress events interleave across files,
+ * so the raw label flickers several times a second. The shown label switches
+ * to a new file at most once per 1.5s — unless the incoming file just
+ * finished, which always cuts through. Pure for testing (`now` injected).
+ */
+export interface ShownFile {
+  readonly file: string
+  readonly at: number
+}
+
+export interface FileEvent {
+  readonly file: string
+  readonly complete: boolean
+  readonly at: number
+}
+
+export function nextFile(shown: ShownFile | null, event: FileEvent): ShownFile {
+  if (shown === null) {
+    return { file: event.file, at: event.at }
+  }
+  if (event.file === shown.file) {
+    return shown
+  }
+  if (event.complete || event.at - shown.at >= 1500) {
+    return { file: event.file, at: event.at }
+  }
+  return shown
+}
+
+/**
  * Cosine similarity of two vectors.
  * Returns 0 for empty or mismatched vectors; the scorer service
  * rejects dimension mismatches as errors instead of scoring them.

@@ -6,8 +6,9 @@ deterministic
 
 ## Sub-features
 
-- Cold first load pulls text + vision q4f16 + tokenizer (~290MB, no
-  audio files) into per-origin Cache Storage, then the board goes ready
+- Cold first load pulls text + vision weights + tokenizer (WebGPU:
+  q4f16 ~290MB; WASM: fp16 ~910MB, no audio files either way) into
+  per-origin Cache Storage, then the board goes ready
   with zero console errors.
 - A genuine photo of the day's object outscores a wrong-object photo
   (pairwise property; spike: 97% over 122 photos).
@@ -53,6 +54,7 @@ Close the proof page before deleting the session
 Cannot graduate to native e2e: needs a 290MB download and a live
 user browser. Stays a skill-level deterministic workflow instead.
 
-- [x] Cold load completes, correct file set (text + vision, no audio).
+- [x] Cold load completes, correct file set (text + vision, no audio;
+  fp16 set proven on the WASM path, which shares the phone's kernels).
 - [x] Match outscores non-match (18 vs 1 on bicycle day, 2026-10-11).
 - [x] Repeat pass green (re-run, cache-hot).

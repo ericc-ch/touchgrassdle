@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import { Option } from "effect"
 import {
   cosineSimilarity,
+  nextFile,
   nextFraction,
   parseEmbedding,
   temperatureFor,
@@ -38,6 +39,37 @@ describe("nextFraction", () => {
     expect(nextFraction(null, -1)).toBe(0)
     expect(nextFraction(null, Number.NaN)).toBe(0)
     expect(nextFraction(0.9, Number.NaN)).toBe(0.9)
+  })
+})
+
+describe("nextFile", () => {
+  it("takes the first file and ignores repeats", () => {
+    expect(nextFile(null, { file: "a", complete: false, at: 1000 })).toEqual({
+      file: "a",
+      at: 1000,
+    })
+    expect(nextFile({ file: "a", at: 1000 }, { file: "a", complete: false, at: 1200 })).toEqual({
+      file: "a",
+      at: 1000,
+    })
+  })
+
+  it("holds a new file inside the throttle window", () => {
+    expect(nextFile({ file: "a", at: 1000 }, { file: "b", complete: false, at: 2000 })).toEqual({
+      file: "a",
+      at: 1000,
+    })
+  })
+
+  it("switches after 1.5s or when the incoming file completes", () => {
+    expect(nextFile({ file: "a", at: 1000 }, { file: "b", complete: false, at: 2500 })).toEqual({
+      file: "b",
+      at: 2500,
+    })
+    expect(nextFile({ file: "a", at: 1000 }, { file: "b", complete: true, at: 1200 })).toEqual({
+      file: "b",
+      at: 1200,
+    })
   })
 })
 
