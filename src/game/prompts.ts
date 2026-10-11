@@ -225,3 +225,25 @@ export function promptFor(date: Date): { readonly dateKey: string; readonly prom
   }
   return { dateKey: date.toISOString().slice(0, 10), prompt }
 }
+
+/**
+ * Hint bands in sharpening order. The starting hint always shows `frozen`;
+ * each attempt unlocks the next-sharpest hint by attempt number, not by
+ * score — score bands would repeat (two frozen guesses show the same
+ * clue twice) while the game runs out of attempts.
+ */
+const CLUE_ORDER: ReadonlyArray<Temperature> = ["frozen", "cool", "warm", "hot", "blazing"]
+
+/**
+ * The hint for the attempt at `attemptIndex` (0-based count of guesses
+ * already made). Attempt 1 shows `cool`, 2 `warm`, 3 `hot`, 4+ `blazing`.
+ *
+ * @example
+ * ```ts
+ * clueForAttempt(bicycle, 0) // "It leans on things when it's resting."
+ * ```
+ */
+export function clueForAttempt(prompt: Prompt, attemptIndex: number): string {
+  const slot = Math.min(Math.max(attemptIndex + 1, 1), CLUE_ORDER.length - 1)
+  return prompt.clues[CLUE_ORDER[slot] ?? "blazing"]
+}

@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState, useSyncExternalStore } from "react"
 import { Effect } from "effect"
 import { fileToThumbnail } from "./photo.ts"
-import { promptFor, QUERY_PREFIX, shareDayNumber } from "./prompts.ts"
+import { clueForAttempt, promptFor, QUERY_PREFIX, shareDayNumber } from "./prompts.ts"
 import { MAX_GUESSES, cosineSimilarity, temperatureFor, toScore } from "./scoring.ts"
 import {
   EmbedError,
@@ -176,7 +176,7 @@ export function useDailyGame(): DailyGame {
             recordGuess(day, {
               score,
               temperature,
-              clue: today.prompt.clues[temperature],
+              clue: clueForAttempt(today.prompt, day.guesses.length),
               takenAt: Date.now(),
             }),
             [...thumbnails, thumbnail],
@@ -189,7 +189,7 @@ export function useDailyGame(): DailyGame {
         },
       )
     },
-    [loader.scorer, promptVector, scoring, day, thumbnails, persist, today.prompt.clues],
+    [loader.scorer, promptVector, scoring, day, thumbnails, persist, today.prompt],
   )
 
   const share = useCallback(() => {
@@ -219,13 +219,13 @@ export function useDailyGame(): DailyGame {
         recordGuess(day, {
           score: clamped,
           temperature,
-          clue: today.prompt.clues[temperature],
+          clue: clueForAttempt(today.prompt, day.guesses.length),
           takenAt: Date.now(),
         }),
         [...thumbnails, fakeThumbnail(clamped)],
       )
     },
-    [day, thumbnails, persist, today.prompt.clues],
+    [day, thumbnails, persist, today.prompt],
   )
 
   const solveNow = useCallback(() => {
@@ -246,7 +246,7 @@ export function useDailyGame(): DailyGame {
       next = recordGuess(next, {
         score: clamped,
         temperature,
-        clue: today.prompt.clues[temperature],
+        clue: clueForAttempt(today.prompt, day.guesses.length + index),
         takenAt: Date.now() + index,
       })
       nextThumbnails.push(fakeThumbnail(clamped))

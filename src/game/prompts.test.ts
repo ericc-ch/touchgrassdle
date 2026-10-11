@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest"
-import { FIRST_DAY_NUMBER, PROMPTS, promptFor, promptIndexFor, shareDayNumber } from "./prompts.ts"
+import {
+  clueForAttempt,
+  FIRST_DAY_NUMBER,
+  PROMPTS,
+  promptFor,
+  promptIndexFor,
+  shareDayNumber,
+} from "./prompts.ts"
 
 const day = (iso: string) => new Date(`${iso}T12:00:00Z`)
 
@@ -22,6 +29,28 @@ describe("rotation", () => {
 
   it("derives the first-day constant consistently", () => {
     expect(FIRST_DAY_NUMBER).toBe(promptIndexFor(day("2026-10-09")) + FIRST_DAY_NUMBER)
+  })
+})
+
+describe("clueForAttempt", () => {
+  const bicycle = PROMPTS.find((prompt) => prompt.id === "bicycle")
+  if (bicycle === undefined) {
+    throw new Error("bicycle prompt missing")
+  }
+
+  it("sharpens one band per attempt from cool to blazing", () => {
+    expect(clueForAttempt(bicycle, 0)).toBe(bicycle.clues.cool)
+    expect(clueForAttempt(bicycle, 1)).toBe(bicycle.clues.warm)
+    expect(clueForAttempt(bicycle, 2)).toBe(bicycle.clues.hot)
+    expect(clueForAttempt(bicycle, 3)).toBe(bicycle.clues.blazing)
+  })
+
+  it("holds blazing for late attempts and never repeats the starting hint", () => {
+    expect(clueForAttempt(bicycle, 4)).toBe(bicycle.clues.blazing)
+    expect(clueForAttempt(bicycle, 5)).toBe(bicycle.clues.blazing)
+    for (let attempt = 0; attempt < 6; attempt++) {
+      expect(clueForAttempt(bicycle, attempt)).not.toBe(bicycle.clues.frozen)
+    }
   })
 })
 

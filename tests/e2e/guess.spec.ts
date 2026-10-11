@@ -19,3 +19,20 @@ test("capture scores a 0% guess and it survives reload", async ({ page }) => {
   await expect(page.locator("li", { hasText: "0% close" }).first()).toBeVisible()
   await expect(page.locator('ol img[alt="Photo 1, 0% close"]')).toBeVisible()
 })
+
+test("same-score attempts show different hints, never the starting hint", async ({ page }) => {
+  await gotoStub(page, "stub")
+  const starting = await page.getByText("Starting hint").locator("..").innerText()
+
+  await page.locator('input[type="file"]').setInputFiles(pixelPngPath())
+  await expect(page.locator("li", { hasText: "Photo 1 · 0% close" }).first()).toBeVisible()
+  await page.locator('input[type="file"]').setInputFiles(pixelPngPath())
+  await expect(page.locator("li", { hasText: "Photo 2 · 0% close" }).first()).toBeVisible()
+
+  const clues = await page.locator("ol li p").allInnerTexts()
+  expect(clues.length).toBe(2)
+  expect(clues[0]).not.toBe(clues[1])
+  for (const clue of clues) {
+    expect(starting).not.toContain(clue)
+  }
+})
