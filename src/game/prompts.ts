@@ -195,6 +195,13 @@ export function utcDayNumber(date: Date): number {
 /** First day: 2026-10-09 UTC. Share cards count from #1. */
 export const FIRST_DAY_NUMBER = utcDayNumber(new Date("2026-10-09T00:00:00Z"))
 
+/**
+ * Retrieval-task prefix the encoder was calibrated with (docs/plan.md
+ * spike: EG2 0.979 human-order agreement). Queries carry it; photos
+ * (the searched documents) embed raw.
+ */
+export const QUERY_PREFIX = "task: search result | query: "
+
 /** Share-card day number, 1-based from the first day. */
 export function shareDayNumber(date: Date): number {
   return utcDayNumber(date) - FIRST_DAY_NUMBER + 1

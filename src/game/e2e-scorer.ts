@@ -6,9 +6,9 @@ import type { Embedding } from "./scoring.ts"
  * Test-only scorer modes, gated behind the `e2eScorer` query param.
  * Production (no param) always loads the real on-device model.
  *
- * - `stub`: ready instantly, scores every photo 7. The 1-d
+ * - `stub`: ready instantly, scores every photo 0. The 1-d
  *   image vector mismatches the 768-d on-device prompt vector,
- *   so cosine is 0 and the fixed logistic maps it to 7.
+ *   so cosine is 0 and the fitted logistic maps it to 0.
  *   No network, fully deterministic.
  * - `solve`: ready instantly, scores every photo 100 by
  *   returning the same vector for image and prompt (cosine 1).

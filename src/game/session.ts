@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState, useSyncExternalStore } from "react"
 import { Effect } from "effect"
 import { fileToThumbnail } from "./photo.ts"
-import { promptFor, shareDayNumber } from "./prompts.ts"
+import { promptFor, QUERY_PREFIX, shareDayNumber } from "./prompts.ts"
 import { MAX_GUESSES, cosineSimilarity, temperatureFor, toScore } from "./scoring.ts"
 import {
   EmbedError,
@@ -89,7 +89,7 @@ export function useDailyGame(): DailyGame {
   const promptStore = useSyncExternalStore(subscribePromptEmbeddings, getPromptEmbeddingsSnapshot)
   ensureScorer()
   if (loader.scorer !== null) {
-    ensurePromptEmbedding(today.prompt.id, today.prompt.query)
+    ensurePromptEmbedding(today.prompt.id, `${QUERY_PREFIX}${today.prompt.query}`)
   }
   const promptVector = promptStore.embeddings[today.prompt.id] ?? null
   const promptError = promptStore.error

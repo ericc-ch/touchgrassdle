@@ -20,7 +20,7 @@ export function pixelPngPath(): string {
 
 /**
  * Load the app with a stubbed scorer (see `src/game/e2e-scorer.ts`).
- * `stub` scores every photo 7, `solve` scores 100,
+ * `stub` scores every photo 0, `solve` scores 100,
  * `fail` shows photo-scorer-unavailable. No model download, fully deterministic.
  * Dismisses the first-visit How to Play dialog, except in `fail` mode
  * where Play never enables (the dialog itself carries the Retry path).

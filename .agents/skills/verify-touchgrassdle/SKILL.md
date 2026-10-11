@@ -51,7 +51,7 @@ pnpm e2e
 ```
 
 Scorer modes via `?e2eScorer=` (see `src/game/e2e-scorer.ts`, query-gated,
-production untouched): `stub` scores every photo 7, `solve` scores 100,
+production untouched): `stub` scores every photo 0, `solve` scores 100,
 `fail` forces photo-scorer-unavailable. No model download.
 
 Stable handles (real selectors, no placeholders):

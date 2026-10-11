@@ -1,15 +1,14 @@
 import { Data, Effect, Option } from "effect"
 import {
+  AutoConfig,
   AutoProcessor,
-  AutoTokenizer,
+  EmbeddingGemma2Model,
   RawImage,
-  SiglipTextModel,
-  SiglipVisionModel,
 } from "@huggingface/transformers"
 import { e2eStubScorer, readE2EScorerMode } from "./e2e-scorer.ts"
-import { parseEmbedding, type Embedding } from "./scoring.ts"
+import { nextFraction, parseEmbedding, type Embedding } from "./scoring.ts"
 
-export const MODEL_ID = "onnx-community/siglip2-base-patch16-224-ONNX"
+export const MODEL_ID = "onnx-community/embeddinggemma-2-ONNX"
 
 export class ModelLoadError extends Data.TaggedError("ModelLoadError")<{
   readonly message: string
@@ -35,16 +34,11 @@ const failLoad = (cause: unknown): ModelLoadError =>
 const failEmbed = (cause: unknown): EmbedError =>
   new EmbedError({ message: cause instanceof Error ? cause.message : String(cause) })
 
-interface VisionOutput {
-  readonly pooler_output: { tolist(): unknown }
+interface EmbeddingOutput {
+  readonly sentence_embedding: { tolist(): unknown }
 }
 
-interface TextOutput {
-  readonly pooler_output: { tolist(): unknown }
-}
-
-const asVisionOutput = (value: unknown): VisionOutput => value as VisionOutput
-const asTextOutput = (value: unknown): TextOutput => value as TextOutput
+const asEmbeddingOutput = (value: unknown): EmbeddingOutput => value as EmbeddingOutput
 
 /** Lifecycle of the shared scorer load. Session-level prompt errors live elsewhere. */
 export type ScorerStatus = "loading-model" | "ready" | "model-error"
@@ -150,7 +144,13 @@ function reportProgress(progress: ModelFileProgress): void {
   if (snapshot.status !== "loading-model") {
     return
   }
-  emit({ ...snapshot, file: progress.file, fraction: progress.fraction })
+  // One high-water mark across all files: per-file fractions interleave and
+  // would make the UI flicker backwards. No emit unless it actually rose.
+  const fraction = nextFraction(snapshot.fraction, progress.fraction)
+  if (fraction === snapshot.fraction) {
+    return
+  }
+  emit({ ...snapshot, file: progress.file, fraction })
 }
 
 /**
@@ -208,7 +208,9 @@ const progressCallback =
   }
 
 /**
- * Load the on-device encoders plus the image processor.
+ * Load the on-device EmbeddingGemma 2 encoders plus the multimodal processor.
+ * One model embeds photos and today's prompt query into a single vector
+ * space, so cosine scoring just works. The audio encoder is never loaded.
  * Prefers WebGPU when an adapter exists, otherwise goes straight to WASM.
  * (The fallback must be chosen up front: transformers chains session
  * creation on one shared promise, so a failed first attempt poisons
@@ -225,26 +227,19 @@ export const loadScorer = Effect.fn("loadScorer")(function* (
     return e2eStubScorer(e2e)
   }
 
+  const config = yield* Effect.tryPromise({
+    try: () => AutoConfig.from_pretrained(MODEL_ID),
+    catch: failLoad,
+  })
+  // The game never scores audio: dropping the encoder keeps it off the
+  // first-load download entirely. The base config type hides model-specific
+  // keys, hence the narrow cast.
+  ;(config as unknown as { audio_config: unknown }).audio_config = null
+
   const processor = yield* Effect.tryPromise({
     try: () => AutoProcessor.from_pretrained(MODEL_ID),
     catch: failLoad,
   })
-
-  const tokenizer = yield* Effect.tryPromise({
-    try: () => AutoTokenizer.from_pretrained(MODEL_ID),
-    catch: failLoad,
-  })
-
-  const loadVision = (device: "webgpu" | "wasm") =>
-    Effect.tryPromise({
-      try: () =>
-        SiglipVisionModel.from_pretrained(MODEL_ID, {
-          dtype: "q4f16",
-          device,
-          progress_callback: progressCallback(onProgress),
-        }),
-      catch: failLoad,
-    })
 
   const adapter = yield* Effect.tryPromise({
     try: async () => {
@@ -261,17 +256,31 @@ export const loadScorer = Effect.fn("loadScorer")(function* (
     catch: failLoad,
   })
   const device = adapter === null ? "wasm" : "webgpu"
-  const vision = yield* loadVision(device)
 
-  const textModel = yield* Effect.tryPromise({
+  const model = yield* Effect.tryPromise({
     try: () =>
-      SiglipTextModel.from_pretrained(MODEL_ID, {
+      EmbeddingGemma2Model.from_pretrained(MODEL_ID, {
         dtype: "q4f16",
         device,
+        config,
         progress_callback: progressCallback(onProgress),
       }),
     catch: failLoad,
   })
+
+  const sentenceVector = (
+    output: EmbeddingOutput,
+    message: string,
+  ): Effect.Effect<Embedding, EmbedError> =>
+    Effect.gen(function* () {
+      const rows = output.sentence_embedding.tolist() as ReadonlyArray<unknown>
+      const first = rows[0]
+      const parsed = parseEmbedding(first)
+      if (Option.isNone(parsed)) {
+        return yield* new EmbedError({ message })
+      }
+      return parsed.value
+    })
 
   const embedImage = (photo: Blob): Effect.Effect<Embedding, EmbedError> =>
     Effect.gen(function* () {
@@ -280,48 +289,31 @@ export const loadScorer = Effect.fn("loadScorer")(function* (
         catch: failEmbed,
       })
       const inputs = yield* Effect.tryPromise({
-        try: () => processor(image),
+        try: () => processor(null, [image]),
         catch: failEmbed,
       })
-      const output = asVisionOutput(
+      const output = asEmbeddingOutput(
         yield* Effect.tryPromise({
-          try: () => vision(inputs),
+          try: () => model(inputs),
           catch: failEmbed,
         }),
       )
-      const rows = output.pooler_output.tolist() as ReadonlyArray<unknown>
-      const first = rows[0]
-      const parsed = parseEmbedding(first)
-      if (Option.isNone(parsed)) {
-        return yield* new EmbedError({ message: "vision model returned an unusable embedding" })
-      }
-      return parsed.value
+      return yield* sentenceVector(output, "photo encoder returned an unusable embedding")
     })
 
   const embedText = (text: string): Effect.Effect<Embedding, EmbedError> =>
     Effect.gen(function* () {
-      const inputs = yield* Effect.try({
-        try: () =>
-          tokenizer([text], {
-            padding: "max_length",
-            truncation: true,
-            max_length: 64,
-          }),
+      const inputs = yield* Effect.tryPromise({
+        try: () => processor(text),
         catch: failEmbed,
       })
-      const output = asTextOutput(
+      const output = asEmbeddingOutput(
         yield* Effect.tryPromise({
-          try: () => textModel(inputs),
+          try: () => model(inputs),
           catch: failEmbed,
         }),
       )
-      const rows = output.pooler_output.tolist() as ReadonlyArray<unknown>
-      const first = rows[0]
-      const parsed = parseEmbedding(first)
-      if (Option.isNone(parsed)) {
-        return yield* new EmbedError({ message: "text model returned an unusable embedding" })
-      }
-      return parsed.value
+      return yield* sentenceVector(output, "prompt encoder returned an unusable embedding")
     })
 
   return { embedImage, embedText }

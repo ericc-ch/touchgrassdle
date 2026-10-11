@@ -1,10 +1,10 @@
 import { Option, Schema } from "effect"
 
-/** Cosine-similarity center of the scoring logistic (plan §models). */
-export const COSINE_CENTER = 0.0669
+/** Cosine-similarity center of the scoring logistic (plan §spike, EG2). */
+export const COSINE_CENTER = 0.6578
 
-/** Width of the scoring logistic (plan §models). */
-export const COSINE_WIDTH = 0.0262
+/** Width of the scoring logistic (plan §spike, EG2). */
+export const COSINE_WIDTH = 0.0338
 
 /** A guess at or above this score solves the daily. */
 export const SOLVE_THRESHOLD = 80
@@ -46,7 +46,7 @@ export function parseEmbedding(raw: unknown): Option.Option<Embedding> {
  *
  * @example
  * ```ts
- * toScore(0.0669) // 50
+ * toScore(0.6578) // 50
  * ```
  */
 export function toScore(cosine: number): Score {
@@ -55,6 +55,22 @@ export function toScore(cosine: number): Score {
     return 0
   }
   return Math.min(100, Math.max(0, Math.round(raw)))
+}
+
+/**
+ * Monotonic load progress for the UI. Multi-file downloads report one
+ * fraction per file, so the raw numbers jump backwards as files interleave
+ * (and the bar + % text flicker). The UI shows only the high-water mark,
+ * which can only rise. Pure for testing.
+ *
+ * @example
+ * ```ts
+ * nextFraction(0.5, 0.2) // 0.5
+ * ```
+ */
+export function nextFraction(shown: number | null, incoming: number): number {
+  const clamped = Number.isFinite(incoming) ? Math.min(1, Math.max(0, incoming)) : 0
+  return shown === null ? clamped : Math.max(shown, clamped)
 }
 
 /**

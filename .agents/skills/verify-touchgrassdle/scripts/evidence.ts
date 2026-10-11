@@ -53,8 +53,8 @@ async function main(): Promise<void> {
     await stubStart.click()
     await page.getByRole("button", { name: /Take photo \(6 left\)/ }).waitFor({ timeout: 30_000 })
     await page.locator('input[type="file"]').setInputFiles(pixel)
-    await page.locator("li", { hasText: "7% close" }).first().waitFor({ timeout: 30_000 })
-    transcript["stubGuess"] = await page.locator("li", { hasText: "7% close" }).first().innerText()
+    await page.locator("li", { hasText: "0% close" }).first().waitFor({ timeout: 30_000 })
+    transcript["stubGuess"] = await page.locator("li", { hasText: "0% close" }).first().innerText()
     transcript["storageKeys"] = await page.evaluate(() => Object.keys(window.localStorage))
     await page.screenshot({ path: join(OUT, "board.png"), scale: "css" })
 

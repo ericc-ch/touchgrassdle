@@ -3,15 +3,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress"
 
 export interface ModelStatusProps {
-  readonly file: string | null
   readonly fraction: number | null
   readonly failed: boolean
   readonly error: string | null
   readonly onRetry: () => void
 }
 
-/** First-load scorer download (~55MB, cached after) or load failure. */
-export function ModelStatus({ file, fraction, failed, error, onRetry }: ModelStatusProps) {
+/** First-load scorer download (~290MB, cached after) or load failure. */
+export function ModelStatus({ fraction, failed, error, onRetry }: ModelStatusProps) {
   if (failed) {
     return (
       <Card className="w-full">
@@ -39,17 +38,11 @@ export function ModelStatus({ file, fraction, failed, error, onRetry }: ModelSta
       <CardHeader>
         <CardTitle>Getting the photo scorer ready…</CardTitle>
         <CardDescription>
-          {file === null ? (
-            <>
-              Downloading the{" "}
-              <abbr title="Compares your photo to today's hidden subject on this device, 0 to 100%.">
-                photo scorer
-              </abbr>{" "}
-              (once, then saved on this device).
-            </>
-          ) : (
-            file
-          )}
+          Downloading the{" "}
+          <abbr title="Compares your photo to today's hidden subject on this device, 0 to 100%.">
+            photo scorer
+          </abbr>{" "}
+          (once, then saved on this device).
         </CardDescription>
       </CardHeader>
       <CardContent>
