@@ -25,7 +25,8 @@ preview up (pid 12345)
 
 Ports: 4173 preview (skill), 5173 dev (`pnpm dev`, unrelated, may run
 alongside). No auth, no env vars, no seed data. First real-model load
-downloads ~55MB (cached after); verification avoids it via stub modes.
+downloads ~290MB (157MB text + 98MB vision + 32MB tokenizer, no audio;
+cached after in per-origin Cache Storage); stub modes avoid it entirely.
 
 ## Doctor
 
@@ -65,11 +66,43 @@ Stable handles (real selectors, no placeholders):
 - Dev mode: type `HESOYAM` anywhere to toggle the control panel (also
   `?dev=1`). Every button mutates the live board in place — `Solve now`,
   `Fill to 6 (fail)`, `Add N%`, scorer-status `ToggleGroup`
-  (Real/Loading/Ready/Error/No prompt).
+  (Real/Loading/Ready/Error).
 - Share from inside the stats `dialog` (it overlays the SolvedCard).
 - Clipboard assertions need
   `context.grantPermissions(["clipboard-read", "clipboard-write"])`.
 - Fresh browser context per test = isolated localStorage. Parallel workers OK.
+
+## Real-model proof (playwriter, not helium)
+
+Stub modes prove wiring, not scoring. The real scorer (~290MB weights,
+per-origin Cache Storage) is proven in the user's live browser via
+`playwriter` — never headless helium: headless stalls mid-download on the
+weight files (bytes stop, no errors, page never becomes ready), while the
+same files download fine in a real browser. Do not debug the app for a
+helium transport stall.
+
+Rules (learned the hard way):
+
+- Never touch the user's tab or day. Open a throwaway page on the
+  loopback twin (`http://127.0.0.1:5173/` when they serve
+  `http://localhost:5173/`, or vice versa): separate origin means
+  separate localStorage, separate Cache Storage, separate day.
+- Requires their dev server (`pnpm dev` on 5173, they start it) OR the
+  skill preview (4173, you start it via `launch.sh`). Prefer whichever
+  is already up; never start `pnpm dev` yourself.
+- First run on a fresh origin downloads ~290MB (watch it land, then it
+  is cached); re-runs load from cache in seconds.
+- Close the proof page when done, delete the session. Their tabs stay
+  exactly as found. Verify with `context.pages()` before and after.
+- Drive with `scripts/proof-real-model.js` (see
+  `features/real-model-proof.md`): cold-load byte count, match photo vs
+  non-match photo on the day's object, `RESULT … pass=true`.
+
+```bash
+playwriter session new --tab-group touchgrassdle  # note the id, use as -s
+playwriter -s <id> --timeout 600000 -f .agents/skills/verify-touchgrassdle/scripts/proof-real-model.js
+playwriter session delete <id>
+```
 
 ## Evidence
 

@@ -10,4 +10,5 @@ command, not ad-hoc steps.
 | Day end (reveal, countdown, share, stats)                   | `tests/e2e/day-end.spec.ts`                         | graduated-to-e2e |
 | Theme (single toggle, zero radius)                         | `tests/e2e/theme.spec.ts`                           | graduated-to-e2e |
 | Model error + retry                                         | `tests/e2e/model-error.spec.ts`                     | graduated-to-e2e |
+| Real-model proof (cold load, match beats non-match)       | `scripts/proof-real-model.js` (playwriter)          | deterministic    |
 | Dev mode (HESOYAM controls, live board)                   | `scripts/evidence.ts` (`dev.png` + transcript)      | verified-via-evidence |

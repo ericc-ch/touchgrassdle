@@ -21,7 +21,7 @@ pnpm exec playwright test tests/e2e/model-error.spec.ts
 ```
 
 `?e2eScorer=fail` throws `ModelLoadError` instantly — no waiting on a
-55MB download to time out.
+~290MB download to time out.
 
 ## Gotchas
 

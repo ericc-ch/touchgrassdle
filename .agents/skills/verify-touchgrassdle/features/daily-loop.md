@@ -40,4 +40,4 @@ prompt embeddings: cosine 0, logistic maps to 7). No model download.
 - [x] Boot renders with no console/page errors.
 - [x] One upload produces a 0% guess with hint and thumbnail.
 - [x] Reload preserves the board via the versioned storage key.
-- [x] Runs offline in ~seconds (no 55MB model).
+- [x] Runs offline in ~seconds (no model download).
