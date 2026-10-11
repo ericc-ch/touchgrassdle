@@ -2,6 +2,7 @@ import { useState } from "react"
 import { ChartColumn, CircleQuestionMark } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import { bestScore } from "@/game/state.ts"
 import { useDailyGame } from "@/game/session.ts"
 import { useNow } from "@/game/clock.ts"
@@ -61,8 +62,8 @@ export function GameScreen() {
   const today = promptFor(new Date())
 
   return (
-    <>
-      <header className="border-b px-4">
+    <div className="flex h-dvh flex-col">
+      <header className="shrink-0 border-b px-4">
         <div className="mx-auto flex w-full max-w-md items-center justify-between gap-2 py-2.5">
           <h1 className="text-lg font-bold tracking-tight">Touchgrassdle</h1>
           <nav aria-label="Game" className="flex items-center gap-0.5">
@@ -86,9 +87,9 @@ export function GameScreen() {
           </nav>
         </div>
       </header>
-      <main className="flex flex-1 flex-col items-center p-4">
-        <div className="flex w-full max-w-md flex-col gap-4">
-          <div className="flex items-center justify-between">
+      <main className="flex min-h-0 flex-1 flex-col items-center">
+        <div className="flex h-full w-full max-w-md flex-col gap-3 px-4 pt-3">
+          <div className="flex shrink-0 items-center justify-between">
             <h2 className="text-sm font-semibold">Day #{game.dayNumber}</h2>
             <span className="text-sm text-muted-foreground">
               {game.solved
@@ -97,80 +98,95 @@ export function GameScreen() {
             </span>
           </div>
 
-          {ended ? (
-            <SolvedCard
-              best={bestScore(game.day)}
-              countdown={countdown}
-              failed={!game.solved}
-              guessesUsed={game.day.guesses.length}
-              label={today.prompt.label}
-              onShare={game.share}
-              onStats={() => setStatsOpen(true)}
-              shared={game.shared}
-            />
-          ) : (
-            <CaptureButton
-              disabled={!game.open || !ready}
-              onFile={game.scorePhoto}
-              remaining={game.remaining}
-              scoring={game.scoring}
-            />
-          )}
+          <Card className="shrink-0">
+            <CardContent className="flex flex-col gap-1 p-3">
+              <span className="text-sm font-semibold">Starting hint</span>
+              <p className="break-words text-sm whitespace-pre-wrap text-muted-foreground">
+                {today.prompt.clues.frozen}
+              </p>
+            </CardContent>
+          </Card>
+
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <GuessList day={game.day} thumbnails={game.thumbnails} />
+          </div>
 
           {showSlimLoader ? (
-            <ModelStatus
-              error={game.modelError}
-              failed={failed}
-              fraction={game.modelFraction}
-              onRetry={game.retryLoad}
-            />
+            <div className="shrink-0">
+              <ModelStatus
+                error={game.modelError}
+                failed={failed}
+                fraction={game.modelFraction}
+                onRetry={game.retryLoad}
+              />
+            </div>
           ) : null}
 
           {game.notice !== null ? (
-            <Alert variant={game.notice.startsWith("Touchgrassdle") ? "default" : "destructive"}>
+            <Alert
+              className="shrink-0"
+              variant={game.notice.startsWith("Touchgrassdle") ? "default" : "destructive"}
+            >
               <AlertDescription className="break-words whitespace-pre-wrap">
                 {game.notice}
               </AlertDescription>
             </Alert>
           ) : null}
 
-          <GuessList
-            day={game.day}
-            initialHint={today.prompt.clues.frozen}
-            thumbnails={game.thumbnails}
-          />
-
-          <HowToPlayDialog
-            error={game.modelError}
-            failed={failed}
-            fraction={game.modelFraction}
-            onOpenChange={handleHowToChange}
-            onPlay={startPlaying}
-            onRetry={game.retryLoad}
-            open={howToOpen}
-            ready={ready}
-          />
-
-          <StatsDialog
-            countdown={countdown}
-            onOpenChange={setStatsOpen}
-            onShare={game.share}
-            open={statsOpen}
-            shareLabel={`Day #${game.dayNumber} — ${game.solved ? `found in ${game.day.guesses.length}` : "not found"}`}
-            shared={game.shared}
-            stats={game.stats}
-          />
-          {dev ? (
-            <DevDrawer
-              game={game}
-              onHowTo={() => setHowToOpen(true)}
-              onStats={() => setStatsOpen(true)}
-              promptId={today.prompt.id}
-              promptLabel={today.prompt.label}
-            />
-          ) : null}
+          <div className="shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            {ended ? (
+              <SolvedCard
+                best={bestScore(game.day)}
+                countdown={countdown}
+                failed={!game.solved}
+                guessesUsed={game.day.guesses.length}
+                label={today.prompt.label}
+                onShare={game.share}
+                onStats={() => setStatsOpen(true)}
+                shared={game.shared}
+              />
+            ) : (
+              <CaptureButton
+                disabled={!game.open}
+                onFile={game.scorePhoto}
+                remaining={game.remaining}
+                scoring={game.scoring}
+                waiting={game.open && !ready}
+              />
+            )}
+          </div>
         </div>
       </main>
-    </>
+
+      <HowToPlayDialog
+        error={game.modelError}
+        failed={failed}
+        fraction={game.modelFraction}
+        onOpenChange={handleHowToChange}
+        onPlay={startPlaying}
+        onRetry={game.retryLoad}
+        open={howToOpen}
+        ready={ready}
+      />
+
+      <StatsDialog
+        countdown={countdown}
+        onOpenChange={setStatsOpen}
+        onShare={game.share}
+        open={statsOpen}
+        shareLabel={`Day #${game.dayNumber} — ${game.solved ? `found in ${game.day.guesses.length}` : "not found"}`}
+        shared={game.shared}
+        stats={game.stats}
+      />
+      {dev ? (
+        <DevDrawer
+          game={game}
+          onHowTo={() => setHowToOpen(true)}
+          onStats={() => setStatsOpen(true)}
+          promptId={today.prompt.id}
+          promptLabel={today.prompt.label}
+        />
+      ) : null}
+    </div>
   )
 }

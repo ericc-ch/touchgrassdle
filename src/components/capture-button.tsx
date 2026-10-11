@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 
 export interface CaptureButtonProps {
   readonly disabled: boolean
+  readonly waiting: boolean
   readonly scoring: boolean
   readonly remaining: number
   readonly onFile: (file: File) => void
@@ -28,7 +29,13 @@ function cameraSupported(): boolean {
  * No effects: the camera only starts from the Enable button (user gesture),
  * and tracks stop from Take/Close handlers or when the last photo is used.
  */
-export function CaptureButton({ disabled, scoring, remaining, onFile }: CaptureButtonProps) {
+export function CaptureButton({
+  disabled,
+  waiting,
+  scoring,
+  remaining,
+  onFile,
+}: CaptureButtonProps) {
   const inputRef = useRef<HTMLInputElement | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -37,7 +44,14 @@ export function CaptureButton({ disabled, scoring, remaining, onFile }: CaptureB
   const [starting, setStarting] = useState(false)
 
   const previewOn = stream !== null
-  const busy = disabled || scoring
+  const busy = disabled || waiting || scoring
+  const actionLabel = scoring
+    ? "Checking photo…"
+    : disabled
+      ? "No photos left"
+      : waiting
+        ? "Loading the photo scorer…"
+        : `Take photo (${remaining} left)`
 
   const startPreview = (): void => {
     if (!cameraSupported() || busy) {
@@ -125,7 +139,7 @@ export function CaptureButton({ disabled, scoring, remaining, onFile }: CaptureB
           <div className="flex gap-2">
             <Button className="flex-1" disabled={busy} onClick={takePhoto} size="lg">
               <Camera data-icon="inline-start" />
-              {scoring ? "Checking photo…" : `Take photo (${remaining} left)`}
+              {actionLabel}
             </Button>
             <Button
               aria-label="Close camera preview"
@@ -145,13 +159,7 @@ export function CaptureButton({ disabled, scoring, remaining, onFile }: CaptureB
         <>
           <Button className="w-full" disabled={busy || starting} onClick={startPreview} size="lg">
             <Camera data-icon="inline-start" />
-            {scoring
-              ? "Checking photo…"
-              : disabled
-                ? "No photos left"
-                : starting
-                  ? "Starting camera…"
-                  : `Take photo (${remaining} left)`}
+            {starting ? "Starting camera…" : actionLabel}
           </Button>
           <Button disabled={busy} onClick={pickUpload} variant="ghost">
             <ImagePlus data-icon="inline-start" />

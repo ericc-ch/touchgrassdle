@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --host 127.0.0.1 --port 5173",
+    "dev": "vite",
     "build": "tsc -b && vite build",
     "build:deploy": "pnpm build && rm -f dist/assets/*.wasm",
     "typecheck": "tsc -b",
@@ -13,7 +13,7 @@
     "lint:fix": "oxlint --fix",
     "format": "oxfmt --check",
     "format:fix": "oxfmt",
-    "preview": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
+    "preview": "vite preview",
     "smoke:browser": "tsx scripts/smoke-browser.ts",
     "e2e": "pnpm build && E2E_BROWSER=\"${E2E_BROWSER:-$(command -v helium || true)}\" playwright test",
     "plan": "alchemy plan --stage prod",

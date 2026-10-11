@@ -69,7 +69,7 @@ export function DevDrawer({ game, promptLabel, promptId, onHowTo, onStats }: Dev
   }
 
   return (
-    <section aria-label="Developer mode" className="border-t bg-background">
+    <section aria-label="Developer mode" className="shrink-0 border-t bg-background">
       <div className="mx-auto flex max-h-[70svh] w-full max-w-md flex-col gap-3 overflow-y-auto p-4">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-sm font-bold">Dev mode · HESOYAM</h2>

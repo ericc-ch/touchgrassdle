@@ -4,22 +4,16 @@ import type { DayState } from "@/game/state.ts"
 export interface GuessListProps {
   readonly day: DayState
   readonly thumbnails: ReadonlyArray<string>
-  readonly initialHint: string
 }
 
-/** Scored guesses, newest last, each with its photo, closeness %, and hint. */
-export function GuessList({ day, thumbnails, initialHint }: GuessListProps) {
+/**
+ * Scored guesses, newest last, each with its photo, closeness %, and hint.
+ * The starting hint lives above this list (always visible); an empty day
+ * renders nothing here so the controls stay anchored down.
+ */
+export function GuessList({ day, thumbnails }: GuessListProps) {
   if (day.guesses.length === 0) {
-    return (
-      <Card>
-        <CardContent className="flex flex-col gap-1 p-3">
-          <span className="text-sm font-semibold">Starting hint</span>
-          <p className="break-words text-sm whitespace-pre-wrap text-muted-foreground">
-            {initialHint}
-          </p>
-        </CardContent>
-      </Card>
-    )
+    return null
   }
   return (
     <ol className="flex w-full flex-col gap-3">
