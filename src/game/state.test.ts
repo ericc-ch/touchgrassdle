@@ -4,7 +4,6 @@ import { newDay, bestScore, canGuess, isSolved, recordGuess } from "./state.ts"
 const guess = (score: number) => ({
   score,
   temperature: "warm" as const,
-  clue: "warmer",
   takenAt: 0,
 })
 

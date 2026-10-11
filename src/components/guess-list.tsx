@@ -1,26 +1,30 @@
 import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import { clueForAttempt, type Prompt } from "@/game/prompts.ts"
 import type { DayState } from "@/game/state.ts"
 
 export interface GuessListProps {
   readonly day: DayState
+  readonly prompt: Prompt
   readonly thumbnails: ReadonlyArray<string>
 }
 
 /**
  * Scored guesses, newest last. Same design language as the starting hint:
- * small card, semibold label row, muted clue. Thumbnails are square
- * buttons that open a zoomable preview (Dialog with the full image plus
- * its numbered clue caption).
+ * small card, semibold label row, muted clue. The hint is derived at
+ * render from our prompt bank — guess n shows hint n — never stored.
+ * Thumbnails are square buttons that open a zoomable preview (Dialog with
+ * the full image plus its numbered clue caption).
  */
-export function GuessList({ day, thumbnails }: GuessListProps) {
+export function GuessList({ day, prompt, thumbnails }: GuessListProps) {
   const [preview, setPreview] = useState<number | null>(null)
   if (day.guesses.length === 0) {
     return null
   }
   const selected = preview === null ? undefined : day.guesses[preview]
   const selectedThumbnail = preview === null ? undefined : thumbnails[preview]
+  const selectedClue = preview === null ? "" : clueForAttempt(prompt, preview)
   return (
     <>
       <ol className="flex w-full flex-col gap-2">
@@ -49,7 +53,7 @@ export function GuessList({ day, thumbnails }: GuessListProps) {
                       Photo {index + 1} · {guess.score}% close
                     </span>
                     <p className="break-words text-sm whitespace-pre-wrap text-muted-foreground">
-                      {guess.clue}
+                      {clueForAttempt(prompt, index)}
                     </p>
                   </div>
                 </CardContent>
@@ -69,7 +73,7 @@ export function GuessList({ day, thumbnails }: GuessListProps) {
         <DialogContent className="sm:max-w-md">
           <DialogTitle>Photo {(preview ?? 0) + 1}</DialogTitle>
           <DialogDescription>
-            {selected === undefined ? "" : `${selected.score}% close — ${selected.clue}`}
+            {selected === undefined ? "" : `${selected.score}% close — ${selectedClue}`}
           </DialogDescription>
           {selectedThumbnail === undefined ? null : (
             <img

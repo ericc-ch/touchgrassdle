@@ -1,11 +1,11 @@
 import { Schema } from "effect"
 import { MAX_GUESSES, SOLVE_THRESHOLD, Score, Temperature } from "./scoring.ts"
 
-/** One scored guess. Photos live in the UI layer; the domain keeps scores. */
+/** One scored guess. Photos live in the UI layer; the hint is derived at
+ * render from the guess index (guess n shows hint n), so it is not stored. */
 export const Guess = Schema.Struct({
   score: Score,
   temperature: Temperature,
-  clue: Schema.String,
   takenAt: Schema.Number,
 })
 export type Guess = typeof Guess.Type
@@ -47,7 +47,6 @@ export function bestScore(day: DayState): number {
 export interface RecordGuessInput {
   readonly score: Score
   readonly temperature: Temperature
-  readonly clue: string
   readonly takenAt: number
 }
 

@@ -15,8 +15,8 @@ describe("squareFor", () => {
 describe("formatShareCard", () => {
   it("shares progress without photos", () => {
     let day = newDay("2026-10-09", "exit-sign")
-    day = recordGuess(day, { score: 55, temperature: "warm", clue: "", takenAt: 0 })
-    day = recordGuess(day, { score: 92, temperature: "blazing", clue: "", takenAt: 0 })
+    day = recordGuess(day, { score: 55, temperature: "warm", takenAt: 0 })
+    day = recordGuess(day, { score: 92, temperature: "blazing", takenAt: 0 })
     expect(formatShareCard(12, day)).toBe("Touchgrassdle #12 2/6 · best 92\n🟨🟥⬛⬛⬛⬛")
   })
 

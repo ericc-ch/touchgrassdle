@@ -108,7 +108,7 @@ export function GameScreen() {
           </Card>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <GuessList day={game.day} thumbnails={game.thumbnails} />
+            <GuessList day={game.day} prompt={today.prompt} thumbnails={game.thumbnails} />
           </div>
 
           {showSlimLoader ? (

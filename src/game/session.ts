@@ -172,15 +172,10 @@ export function useDailyGame(): DailyGame {
       ).then(
         ({ thumbnail, score }) => {
           const temperature = temperatureFor(score)
-          persist(
-            recordGuess(day, {
-              score,
-              temperature,
-              clue: clueForAttempt(today.prompt, day.guesses.length),
-              takenAt: Date.now(),
-            }),
-            [...thumbnails, thumbnail],
-          )
+          persist(recordGuess(day, { score, temperature, takenAt: Date.now() }), [
+            ...thumbnails,
+            thumbnail,
+          ])
           setScoring(false)
         },
         (cause: unknown) => {
@@ -206,7 +201,8 @@ export function useDailyGame(): DailyGame {
 
   const solved = isSolved(day)
   const open = canGuess(day)
-  const latest = day.guesses[day.guesses.length - 1]
+  const latestClue =
+    day.guesses.length === 0 ? null : clueForAttempt(today.prompt, day.guesses.length - 1)
 
   const addFakeGuess = useCallback(
     (score: number) => {
@@ -215,15 +211,10 @@ export function useDailyGame(): DailyGame {
       }
       const clamped = Math.min(100, Math.max(0, Math.round(score)))
       const temperature = temperatureFor(clamped)
-      persist(
-        recordGuess(day, {
-          score: clamped,
-          temperature,
-          clue: clueForAttempt(today.prompt, day.guesses.length),
-          takenAt: Date.now(),
-        }),
-        [...thumbnails, fakeThumbnail(clamped)],
-      )
+      persist(recordGuess(day, { score: clamped, temperature, takenAt: Date.now() }), [
+        ...thumbnails,
+        fakeThumbnail(clamped),
+      ])
     },
     [day, thumbnails, persist, today.prompt],
   )
@@ -243,12 +234,7 @@ export function useDailyGame(): DailyGame {
     for (let index = 0; index < needed; index++) {
       const clamped = candidates[(day.guesses.length + index) % candidates.length] ?? 12
       const temperature = temperatureFor(clamped)
-      next = recordGuess(next, {
-        score: clamped,
-        temperature,
-        clue: clueForAttempt(today.prompt, day.guesses.length + index),
-        takenAt: Date.now() + index,
-      })
+      next = recordGuess(next, { score: clamped, temperature, takenAt: Date.now() + index })
       nextThumbnails.push(fakeThumbnail(clamped))
     }
     persist(next, nextThumbnails)
@@ -283,7 +269,7 @@ export function useDailyGame(): DailyGame {
     solved,
     open,
     remaining: MAX_GUESSES - day.guesses.length,
-    latestClue: latest === undefined ? null : latest.clue,
+    latestClue,
     retryLoad,
     scorePhoto,
     share,
