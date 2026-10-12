@@ -1,6 +1,13 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
+import {
+  retryAction,
+  scorerDownloadNote,
+  scorerFailedNote,
+  scorerGettingReadyTitle,
+  scorerUnavailableTitle,
+} from "@/copy.ts"
 import { ScorerTerm } from "./scorer-term.tsx"
 
 export interface ModelStatusProps {
@@ -16,15 +23,15 @@ export function ModelStatus({ fraction, failed, error, onRetry }: ModelStatusPro
     return (
       <Card className="w-full">
         <CardHeader>
-          <CardTitle>Photo scorer unavailable</CardTitle>
+          <CardTitle>{scorerUnavailableTitle}</CardTitle>
           <CardDescription>
-            The <ScorerTerm /> failed to load. Check your connection and retry.
+            The <ScorerTerm /> {scorerFailedNote}
             {error === null ? "" : ` (${error})`}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Button onClick={onRetry} variant="outline">
-            Retry
+            {retryAction}
           </Button>
         </CardContent>
       </Card>
@@ -33,9 +40,9 @@ export function ModelStatus({ fraction, failed, error, onRetry }: ModelStatusPro
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>Getting the photo scorer ready…</CardTitle>
+        <CardTitle>{scorerGettingReadyTitle}</CardTitle>
         <CardDescription>
-          Downloading the <ScorerTerm /> (once, then saved on this device).
+          Downloading the <ScorerTerm /> {scorerDownloadNote}
         </CardDescription>
       </CardHeader>
       <CardContent>

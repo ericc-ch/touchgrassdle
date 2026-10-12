@@ -1,7 +1,10 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { switchConfirmAction, switchConfirmHint, switchIdleLabel } from "@/copy.ts"
 
 export interface GiveUpButtonProps {
+  readonly position: number
+  readonly total: number
   readonly onGiveUp: () => void
 }
 
@@ -11,28 +14,28 @@ export interface GiveUpButtonProps {
  * stay hidden until the reveal. The parent keys on the choice id so
  * arming resets whenever the pick changes.
  */
-export function GiveUpButton({ onGiveUp }: GiveUpButtonProps) {
+export function GiveUpButton({ position, total, onGiveUp }: GiveUpButtonProps) {
   const [armed, setArmed] = useState(false)
   if (!armed) {
     return (
       <Button
-        aria-label="Try another object?"
+        aria-label={switchIdleLabel(position, total)}
         className="font-medium underline"
         onClick={() => setArmed(true)}
         variant="link"
       >
-        Try another object?
+        {switchIdleLabel(position, total)}
       </Button>
     )
   }
   return (
     <Button
-      aria-label="Tap again to confirm. Photos reset."
+      aria-label={switchConfirmHint}
       className="font-medium text-destructive underline"
       onClick={onGiveUp}
       variant="link"
     >
-      Tap again to confirm
+      {switchConfirmAction}
     </Button>
   )
 }

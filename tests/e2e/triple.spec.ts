@@ -1,78 +1,70 @@
-import { expect, test } from "@playwright/test"
+import { expect, test, type Page } from "@playwright/test"
 import { gotoStub, pixelPngPath } from "./helpers.ts"
 
-test("picker offers three objects without naming them", async ({ page }) => {
-  await gotoStub(page, "stub", { pick: false })
-  await expect(page.getByText("Pick today's object")).toBeVisible()
-  const choices = page.getByRole("button", { name: /^Choose/ })
-  await expect(choices).toHaveCount(3)
-  await expect(choices.nth(0)).toHaveAttribute("aria-label", "Choose object 1")
-  await expect(choices.nth(1)).toHaveAttribute("aria-label", "Choose object 2")
-  await expect(choices.nth(2)).toHaveAttribute("aria-label", "Choose object 3")
-  await expect(page.getByRole("button", { name: /Take photo/ })).toHaveCount(0)
-  const picker = await page.getByText("Pick today's object").locator("..").innerText()
-
-  // Burn the whole day to learn the labels from the reveal, then prove
-  // the saved picker text named none of them.
-  await choices.first().click()
-  for (let round = 0; round < 3; round++) {
-    for (let shot = 1; shot <= 6; shot++) {
-      await page.locator('input[type="file"]').setInputFiles(pixelPngPath())
-      await expect(
-        page.locator("li", { hasText: `Photo ${shot} · 0% close` }).first(),
-      ).toBeVisible()
-    }
-    if (round < 2) {
-      await page
-        .getByRole("button", { name: /^Choose/ })
-        .first()
-        .click()
-    }
+async function burnCurrentObject(page: Page): Promise<void> {
+  for (let shot = 1; shot <= 6; shot++) {
+    await page.locator('input[type="file"]').setInputFiles(pixelPngPath())
+    await expect(page.locator("li", { hasText: `Photo ${shot} · 0% close` }).first()).toBeVisible()
   }
+}
+
+test("day opens on object 1 with a position indicator", async ({ page }) => {
+  await gotoStub(page, "stub")
+  await expect(page.getByRole("button", { name: /Take photo \(6 left\)/ })).toBeVisible()
+  await expect(page.getByText("Starting hint")).toBeVisible()
+  await expect(
+    page.getByRole("button", { name: "Try another object? (1/3)", exact: true }),
+  ).toBeVisible()
+})
+
+test("switch advances to object 2 with a fresh 6", async ({ page }) => {
+  await gotoStub(page, "stub")
+  await page.locator('input[type="file"]').setInputFiles(pixelPngPath())
+  await expect(page.getByRole("button", { name: /Take photo \(5 left\)/ })).toBeVisible()
+
+  // First tap only arms the confirm; the run is untouched.
+  await page.getByRole("button", { name: /Try another object\? \(1\/3\)/ }).click()
+  await expect(page.getByRole("button", { name: "Tap again to confirm" })).toBeVisible()
+  await expect(page.locator("li", { hasText: "Photo 1 · 0% close" }).first()).toBeVisible()
+
+  // Second tap clears the run and opens object 2.
+  await page.getByRole("button", { name: "Tap again to confirm" }).click()
+  await expect(page.getByRole("button", { name: /Take photo \(6 left\)/ })).toBeVisible()
+  await expect(
+    page.getByRole("button", { name: "Try another object? (2/3)", exact: true }),
+  ).toBeVisible()
+  await expect(page.locator("ol li")).toHaveCount(0)
+})
+
+test("failing all three ends the day without naming objects early", async ({ page }) => {
+  await gotoStub(page, "stub")
+  const early = await page.locator("main").innerText()
+
+  await burnCurrentObject(page)
+  await expect(page.getByText(/Out of photos on /)).toBeVisible()
+  await page.getByRole("button", { name: "Continue to object 2", exact: true }).click()
+  await expect(page.getByRole("button", { name: /Take photo \(6 left\)/ })).toBeVisible()
+
+  await burnCurrentObject(page)
+  await page.getByRole("button", { name: "Continue to object 3", exact: true }).click()
+
+  await burnCurrentObject(page)
+  await expect(page.getByText("Out of photos")).toBeVisible()
   const reveal = await page.getByText(/Today's objects: /).innerText()
   const objects = reveal.replace("Today's objects: ", "").replace(/\.$/, "").split(", ")
   expect(objects).toHaveLength(3)
   for (const object of objects) {
-    expect(picker).not.toContain(object)
+    expect(early).not.toContain(object)
   }
+  await expect(page.getByText(/Next day in \d\d:\d\d:\d\d/)).toBeVisible()
 })
 
-test("two-tap switch kills the pick and returns to the picker", async ({ page }) => {
-  await gotoStub(page, "stub")
-  const switchButton = page.getByRole("button", { name: "Try another object?", exact: true })
-
-  await page.locator('input[type="file"]').setInputFiles(pixelPngPath())
-  await expect(page.locator("li", { hasText: "Photo 1 · 0% close" }).first()).toBeVisible()
-
-  // First tap only arms the confirm; the run is untouched.
-  await switchButton.click()
-  await expect(page.getByRole("button", { name: "Tap again to confirm" })).toBeVisible()
-  await expect(page.locator("li", { hasText: "Photo 1 · 0% close" }).first()).toBeVisible()
-
-  // Second tap clears the run and kills the pick for the day.
-  await page.getByRole("button", { name: "Tap again to confirm" }).click()
-  await expect(page.getByText("Pick today's object")).toBeVisible()
-  await expect(page.getByRole("button", { name: /Take photo/ })).toHaveCount(0)
-  await expect(page.locator("ol li", { hasText: "Out for today" })).toHaveCount(1)
-
-  // The next pick starts a fresh 6.
-  await page
-    .getByRole("button", { name: /^Choose/ })
-    .first()
-    .click()
-  await expect(page.getByRole("button", { name: /Take photo \(6 left\)/ })).toBeVisible()
-})
-
-test("solving after a switch names both prompts in the share card", async ({ page, context }) => {
+test("solving after a switch names both objects in the share card", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"])
   await gotoStub(page, "stub")
 
-  await page.getByRole("button", { name: "Try another object?", exact: true }).click()
+  await page.getByRole("button", { name: /Try another object\? \(1\/3\)/ }).click()
   await page.getByRole("button", { name: "Tap again to confirm" }).click()
-  await page
-    .getByRole("button", { name: /^Choose/ })
-    .first()
-    .click()
 
   await page.goto(`${page.url().split("?")[0]}?e2eScorer=solve`)
   await expect(page.getByRole("button", { name: /Take photo \(6 left\)/ })).toBeVisible()
@@ -90,26 +82,4 @@ test("solving after a switch names both prompts in the share card", async ({ pag
   expect(shared).toContain(`(${solvedLabel})`)
   expect(shared).toContain("1/6")
   expect(shared).toContain(`skipped: ${quitLabel}`)
-})
-
-test("burning all three triples ends the day with every object named", async ({ page }) => {
-  await gotoStub(page, "stub")
-  for (let round = 0; round < 3; round++) {
-    for (let shot = 1; shot <= 6; shot++) {
-      await page.locator('input[type="file"]').setInputFiles(pixelPngPath())
-      await expect(
-        page.locator("li", { hasText: `Photo ${shot} · 0% close` }).first(),
-      ).toBeVisible()
-    }
-    if (round < 2) {
-      await expect(page.getByText(/Out of photos on /)).toBeVisible()
-      await page
-        .getByRole("button", { name: /^Choose/ })
-        .first()
-        .click()
-    }
-  }
-  await expect(page.getByText("Out of photos")).toBeVisible()
-  await expect(page.getByText(/Today's objects: /)).toBeVisible()
-  await expect(page.getByText(/Next day in \d\d:\d\d:\d\d/)).toBeVisible()
 })

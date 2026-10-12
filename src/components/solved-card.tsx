@@ -1,6 +1,7 @@
 import { ChartColumn, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { sharedAction, shareAction } from "@/copy.ts"
 
 export interface SolvedCardProps {
   readonly title: string
@@ -30,7 +31,7 @@ export function SolvedCard({
         <div className="flex gap-2">
           <Button className="flex-1" onClick={onShare} variant="outline">
             <Share2 />
-            {shared ? "Copied!" : "Share score"}
+            {shared ? sharedAction : shareAction}
           </Button>
           <Button aria-label="View statistics" onClick={onStats} size="icon" variant="outline">
             <ChartColumn />

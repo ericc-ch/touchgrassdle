@@ -1,11 +1,10 @@
 import { describe, expect, it } from "vitest"
 import {
+  advance,
   boardFailed,
   canGuess,
   bestScore,
-  choosePrompt,
   dayOver,
-  giveUp,
   isSolved,
   liveIds,
   newDay,
@@ -21,32 +20,18 @@ const guess = (score: number) => ({
 })
 
 describe("day lifecycle", () => {
-  it("starts with no choice and three live picks", () => {
+  it("opens on the first object with three live picks", () => {
     const day = newDay("2026-10-09", triple)
-    expect(day.choiceId).toBe(null)
-    expect(canGuess(day)).toBe(false)
+    expect(day.choiceId).toBe("exit-sign")
+    expect(canGuess(day)).toBe(true)
     expect(isSolved(day)).toBe(false)
     expect(dayOver(day)).toBe(false)
     expect(bestScore(day)).toBe(0)
     expect(liveIds(day)).toEqual(["exit-sign", "wall-clock", "bicycle"])
   })
 
-  it("choosing starts a guessable run", () => {
-    const day = choosePrompt(newDay("2026-10-09", triple), "bicycle")
-    expect(day.choiceId).toBe("bicycle")
-    expect(canGuess(day)).toBe(true)
-  })
-
-  it("rejects unknown, dead, and late choices", () => {
-    const fresh = newDay("2026-10-09", triple)
-    expect(choosePrompt(fresh, "toaster")).toBe(fresh)
-    const picked = choosePrompt(fresh, "bicycle")
-    const quit = giveUp(picked)
-    expect(choosePrompt(quit, "bicycle")).toBe(quit)
-  })
-
   it("solves on reaching the threshold and ends the day", () => {
-    let day = choosePrompt(newDay("2026-10-09", triple), "bicycle")
+    let day = newDay("2026-10-09", triple)
     day = recordGuess(day, guess(42))
     expect(canGuess(day)).toBe(true)
     expect(bestScore(day)).toBe(42)
@@ -55,10 +40,22 @@ describe("day lifecycle", () => {
     expect(dayOver(day)).toBe(true)
     expect(canGuess(day)).toBe(false)
     expect(recordGuess(day, guess(10))).toBe(day)
+    expect(advance(day)).toBe(day)
+  })
+
+  it("advances to the next object with a fresh run", () => {
+    let day = newDay("2026-10-09", triple)
+    day = recordGuess(day, guess(40))
+    day = advance(day)
+    expect(day.choiceId).toBe("wall-clock")
+    expect(day.guesses).toEqual([])
+    expect(day.gaveUpIds).toEqual(["exit-sign"])
+    expect(canGuess(day)).toBe(true)
+    expect(dayOver(day)).toBe(false)
   })
 
   it("kills the choice after six misses but keeps the run for sharing", () => {
-    let day = choosePrompt(newDay("2026-10-09", triple), "bicycle")
+    let day = newDay("2026-10-09", triple)
     for (let i = 0; i < 6; i++) {
       day = recordGuess(day, guess(10 + i))
     }
@@ -67,37 +64,43 @@ describe("day lifecycle", () => {
     expect(canGuess(day)).toBe(false)
     expect(boardFailed(day)).toBe(true)
     expect(dayOver(day)).toBe(false)
-    expect(liveIds(day)).toEqual(["exit-sign", "wall-clock"])
+    expect(liveIds(day)).toEqual(["wall-clock", "bicycle"])
     expect(recordGuess(day, guess(99))).toBe(day)
   })
 
-  it("gives up the choice, clears the run, and returns to the picker", () => {
-    let day = choosePrompt(newDay("2026-10-09", triple), "bicycle")
-    day = recordGuess(day, guess(40))
-    day = giveUp(day)
-    expect(day.choiceId).toBe(null)
+  it("continues from a burned run onto the next object", () => {
+    let day = newDay("2026-10-09", triple)
+    for (let i = 0; i < 6; i++) {
+      day = recordGuess(day, guess(5))
+    }
+    day = advance(day)
+    expect(day.choiceId).toBe("wall-clock")
     expect(day.guesses).toEqual([])
-    expect(day.gaveUpIds).toEqual(["bicycle"])
-    expect(liveIds(day)).toEqual(["exit-sign", "wall-clock"])
-    expect(dayOver(day)).toBe(false)
+    expect(day.gaveUpIds).toEqual([])
+    expect(canGuess(day)).toBe(true)
   })
 
-  it("ends the day once all three prompts are dead", () => {
-    let day = choosePrompt(newDay("2026-10-09", triple), "exit-sign")
-    day = giveUp(day)
-    day = choosePrompt(day, "wall-clock")
-    day = giveUp(day)
-    day = choosePrompt(day, "bicycle")
+  it("ends the day once all three objects are dead", () => {
+    let day = newDay("2026-10-09", triple)
+    day = advance(day)
+    day = advance(day)
     for (let i = 0; i < 6; i++) {
       day = recordGuess(day, guess(5))
     }
     expect(dayOver(day)).toBe(true)
     expect(canGuess(day)).toBe(false)
-    expect(choosePrompt(day, "exit-sign")).toBe(day)
+    expect(advance(day)).toBe(day)
   })
 
-  it("giving up with no live choice changes nothing", () => {
-    const day = newDay("2026-10-09", triple)
-    expect(giveUp(day)).toBe(day)
+  it("quitting the last object clears the board and ends the day", () => {
+    let day = newDay("2026-10-09", triple)
+    day = advance(day)
+    day = advance(day)
+    day = recordGuess(day, guess(40))
+    day = advance(day)
+    expect(day.choiceId).toBe(null)
+    expect(day.guesses).toEqual([])
+    expect(day.gaveUpIds).toEqual(["exit-sign", "wall-clock", "bicycle"])
+    expect(dayOver(day)).toBe(true)
   })
 })

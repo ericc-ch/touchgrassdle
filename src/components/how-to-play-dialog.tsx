@@ -7,6 +7,23 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Progress } from "@/components/ui/progress"
+import {
+  howToPlayIntro,
+  howToPlayRulePhotos,
+  howToPlayRulePick,
+  howToPlayRuleScorerAfter,
+  howToPlayRuleScorerBefore,
+  howToPlayRuleShare,
+  howToPlayRuleStuck,
+  howToPlayTitle,
+  loadingScorerAction,
+  loadingScorerPercent,
+  retryAction,
+  scorerFailedTitle,
+  scorerLoadingNote,
+  scorerReadyNote,
+  startPlayingAction,
+} from "@/copy.ts"
 import { ScorerTerm } from "./scorer-term.tsx"
 
 export interface HowToPlayDialogProps {
@@ -35,60 +52,45 @@ export function HowToPlayDialog({
   onPlay,
 }: HowToPlayDialogProps) {
   const playLabel = ready
-    ? "Start playing"
+    ? startPlayingAction
     : fraction === null
-      ? "Loading the photo scorer"
-      : `Loading the photo scorer: ${Math.round(fraction * 100)}%`
-  const startLabel = ready ? "Start playing" : "Loading the photo scorer"
+      ? loadingScorerAction
+      : loadingScorerPercent(fraction)
+  const startLabel = ready ? startPlayingAction : loadingScorerAction
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>How to play</DialogTitle>
-          <DialogDescription>
-            Pick 1 of 3 hidden objects each day. Take photos outside to match the object.
-          </DialogDescription>
+          <DialogTitle>{howToPlayTitle}</DialogTitle>
+          <DialogDescription>{howToPlayIntro}</DialogDescription>
         </DialogHeader>
         <ol className="flex list-decimal flex-col gap-2 pl-5">
+          <li>{howToPlayRulePick}</li>
+          <li>{howToPlayRulePhotos}</li>
           <li>
-            Pick 1 of 3 hidden objects. You get a hint, not the name. Everyone gets the same three.
+            {howToPlayRuleScorerBefore} <ScorerTerm /> {howToPlayRuleScorerAfter}
           </li>
-          <li>
-            Take up to 6 photos on your pick. Each photo gets a closeness score, 0 to 100%. Higher
-            means closer. You get a hint with each score.
-          </li>
-          <li>
-            80% or more finds it. Your photos stay on this device. The <ScorerTerm /> runs here, not
-            on a server.
-          </li>
-          <li>
-            Stuck? Tap Try another object? You get 6 new photos on a new pick. The old object stays
-            dead for the day. The picker shows its name.
-          </li>
-          <li>Share your scores with friends. The reveal names every object.</li>
+          <li>{howToPlayRuleStuck}</li>
+          <li>{howToPlayRuleShare}</li>
         </ol>
         {failed ? (
           <div className="flex flex-col gap-2 border border-destructive/40 p-3">
-            <p className="text-sm font-medium">The photo scorer cannot load.</p>
+            <p className="text-sm font-medium">{scorerFailedTitle}</p>
             <p className="text-sm text-muted-foreground">
-              Check your connection and select Retry.
+              Check your connection and select {retryAction}.
               {error === null ? "" : ` Details: ${error}`}
             </p>
             <Button onClick={onRetry} variant="outline">
-              Retry
+              {retryAction}
             </Button>
           </div>
         ) : ready ? (
-          <p className="text-center text-xs text-muted-foreground">
-            The photo scorer is ready. Your photos stay on this device.
-          </p>
+          <p className="text-center text-xs text-muted-foreground">{scorerReadyNote}</p>
         ) : (
           <div className="flex flex-col gap-2">
             <Progress value={fraction === null ? null : Math.round(fraction * 100)} />
-            <p className="text-center text-xs text-muted-foreground">
-              The photo scorer checks your photos on this device. The app downloads it once.
-            </p>
+            <p className="text-center text-xs text-muted-foreground">{scorerLoadingNote}</p>
           </div>
         )}
         {failed ? null : (

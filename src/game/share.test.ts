@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { formatShareCard, squareFor } from "./share.ts"
-import { choosePrompt, giveUp, newDay, recordGuess, type TripleIds } from "./state.ts"
+import { advance, newDay, recordGuess, type TripleIds } from "./state.ts"
 
 const triple: TripleIds = ["bicycle", "banana", "motorcycle"]
 
@@ -15,8 +15,8 @@ describe("squareFor", () => {
 })
 
 describe("formatShareCard", () => {
-  it("names the played prompt without photos", () => {
-    let day = choosePrompt(newDay("2026-10-09", triple), "bicycle")
+  it("names the played object without photos", () => {
+    let day = newDay("2026-10-09", triple)
     day = recordGuess(day, { score: 55, temperature: "warm", takenAt: 0 })
     day = recordGuess(day, { score: 92, temperature: "blazing", takenAt: 0 })
     expect(formatShareCard(12, day, { choiceLabel: "Bicycle", gaveUpLabels: [] })).toBe(
@@ -24,29 +24,26 @@ describe("formatShareCard", () => {
     )
   })
 
-  it("lists gave-up prompts after the score", () => {
-    let day = choosePrompt(newDay("2026-10-09", triple), "banana")
+  it("lists skipped objects after the score", () => {
+    let day = newDay("2026-10-09", triple)
     day = recordGuess(day, { score: 20, temperature: "frozen", takenAt: 0 })
-    day = giveUp(day)
-    day = choosePrompt(day, "bicycle")
+    day = advance(day)
     day = recordGuess(day, { score: 92, temperature: "blazing", takenAt: 0 })
-    expect(formatShareCard(12, day, { choiceLabel: "Bicycle", gaveUpLabels: ["Banana"] })).toBe(
-      "Snapdle #12 (Bicycle) 1/6 · best 92 · skipped: Banana\n🟥⬛⬛⬛⬛⬛",
+    expect(formatShareCard(12, day, { choiceLabel: "Banana", gaveUpLabels: ["Bicycle"] })).toBe(
+      "Snapdle #12 (Banana) 1/6 · best 92 · skipped: Bicycle\n🟥⬛⬛⬛⬛⬛",
     )
   })
 
-  it("marks quit days X/6 with every dead prompt named", () => {
-    let day = choosePrompt(newDay("2026-10-09", triple), "banana")
-    day = giveUp(day)
-    day = choosePrompt(day, "bicycle")
-    day = giveUp(day)
-    day = choosePrompt(day, "motorcycle")
-    day = giveUp(day)
+  it("marks quit days X/6 with every dead object named", () => {
+    let day = newDay("2026-10-09", triple)
+    day = advance(day)
+    day = advance(day)
+    day = advance(day)
     expect(
       formatShareCard(12, day, {
         choiceLabel: null,
-        gaveUpLabels: ["Banana", "Bicycle", "Motorcycle"],
+        gaveUpLabels: ["Bicycle", "Banana", "Motorcycle"],
       }),
-    ).toBe("Snapdle #12 X/6 · best 0 · skipped: Banana, Bicycle, Motorcycle\n⬛⬛⬛⬛⬛⬛")
+    ).toBe("Snapdle #12 X/6 · best 0 · skipped: Bicycle, Banana, Motorcycle\n⬛⬛⬛⬛⬛⬛")
   })
 })

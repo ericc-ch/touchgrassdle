@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import { photoAlt, photoHeading, photoPreviewAlt, photoTitle, zoomPhotoAction } from "@/copy.ts"
 import { clueForAttempt, type Prompt } from "@/game/prompts.ts"
 import type { DayState } from "@/game/state.ts"
 
@@ -36,13 +37,13 @@ export function GuessList({ day, prompt, thumbnails }: GuessListProps) {
                 <CardContent className="flex items-center gap-2.5">
                   {thumbnail !== undefined ? (
                     <button
-                      aria-label={`Zoom photo ${index + 1}`}
+                      aria-label={zoomPhotoAction(index)}
                       className="shrink-0 cursor-zoom-in"
                       onClick={() => setPreview(index)}
                       type="button"
                     >
                       <img
-                        alt={`Photo ${index + 1}, ${guess.score}% close`}
+                        alt={photoAlt(index, guess.score)}
                         className="size-12 shrink-0 object-cover"
                         src={thumbnail}
                       />
@@ -50,7 +51,7 @@ export function GuessList({ day, prompt, thumbnails }: GuessListProps) {
                   ) : null}
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="text-sm font-semibold tabular-nums">
-                      Photo {index + 1} · {guess.score}% close
+                      {photoHeading(index, guess.score)}
                     </span>
                     <p className="break-words text-sm whitespace-pre-wrap text-muted-foreground">
                       {clueForAttempt(prompt, index)}
@@ -71,15 +72,13 @@ export function GuessList({ day, prompt, thumbnails }: GuessListProps) {
         open={preview !== null}
       >
         <DialogContent className="sm:max-w-md">
-          <DialogTitle>Photo {(preview ?? 0) + 1}</DialogTitle>
+          <DialogTitle>{photoTitle(preview ?? 0)}</DialogTitle>
           <DialogDescription>
             {selected === undefined ? "" : `${selected.score}% close — ${selectedClue}`}
           </DialogDescription>
           {selectedThumbnail === undefined ? null : (
             <img
-              alt={
-                selected === undefined ? "Photo preview" : `Photo preview, ${selected.score}% close`
-              }
+              alt={photoPreviewAlt(selected === undefined ? null : selected.score)}
               className="max-h-[70vh] w-full object-contain"
               src={selectedThumbnail}
             />

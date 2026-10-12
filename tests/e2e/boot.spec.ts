@@ -9,19 +9,15 @@ test("boot shows the empty board with no console errors", async ({ page }) => {
       errors.push(message.text())
     }
   })
-  await gotoStub(page, "stub", { pick: false })
+  await gotoStub(page, "stub")
 
   await expect(page.getByRole("heading", { name: "Snapdle" })).toBeVisible()
   await expect(page.getByRole("heading", { name: /Day #\d+/ })).toBeVisible()
-  await expect(page.getByText("Pick today's object")).toBeVisible()
-  await expect(page.getByRole("button", { name: /^Choose/ })).toHaveCount(3)
-
-  await page
-    .getByRole("button", { name: /^Choose/ })
-    .first()
-    .click()
   await expect(page.getByRole("button", { name: /Take photo \(6 left\)/ })).toBeVisible()
   await expect(page.getByText("Starting hint")).toBeVisible()
+  await expect(
+    page.getByRole("button", { name: "Try another object? (1/3)", exact: true }),
+  ).toBeVisible()
   await expect(page.getByTitle("Dark theme")).toBeVisible()
   expect(errors).toEqual([])
 })

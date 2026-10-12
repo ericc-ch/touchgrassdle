@@ -6,6 +6,7 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { scorerTerm, scorerTermExplainer, scorerTermTitle } from "@/copy.ts"
 
 /**
  * The photo-scorer term with its explainer — an infotip, not a tooltip: the
@@ -27,14 +28,12 @@ export function ScorerTerm() {
           />
         }
       >
-        photo scorer
+        {scorerTerm}
       </PopoverTrigger>
       <PopoverContent side="top" sideOffset={4} className="w-60 gap-1 p-2 text-xs">
         <PopoverHeader className="text-xs">
-          <PopoverTitle>Photo scorer</PopoverTitle>
-          <PopoverDescription>
-            Compares your photo to today&apos;s hidden object on this device, 0 to 100%.
-          </PopoverDescription>
+          <PopoverTitle>{scorerTermTitle}</PopoverTitle>
+          <PopoverDescription>{scorerTermExplainer}</PopoverDescription>
         </PopoverHeader>
       </PopoverContent>
     </Popover>

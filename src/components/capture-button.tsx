@@ -1,6 +1,12 @@
 import { useRef } from "react"
 import { Camera } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import {
+  captureWaitingAction,
+  checkingPhotoAction,
+  noPhotosAction,
+  takePhotoAction,
+} from "@/copy.ts"
 
 export interface CaptureButtonProps {
   readonly disabled: boolean
@@ -26,12 +32,12 @@ export function CaptureButton({
 
   const busy = disabled || waiting || scoring
   const actionLabel = scoring
-    ? "Checking photo…"
+    ? checkingPhotoAction
     : disabled
-      ? "No photos left"
+      ? noPhotosAction
       : waiting
-        ? "Loading the photo scorer…"
-        : `Take photo (${remaining} left)`
+        ? captureWaitingAction
+        : takePhotoAction(remaining)
 
   return (
     <div className="flex w-full flex-col gap-2">

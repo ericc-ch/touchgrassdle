@@ -59,9 +59,6 @@ async function main(): Promise<void> {
     await stubStart.waitFor({ timeout: 30_000 })
     await stubStart.click()
     await page.getByRole("dialog").waitFor({ state: "detached", timeout: 30_000 })
-    await page.getByText("Pick today's object").waitFor({ timeout: 30_000 })
-    await page.screenshot({ path: join(OUT, "picker.png"), scale: "css" })
-    await page.getByRole("button", { name: /^Choose/ }).first().click()
     await page.getByRole("button", { name: /Take photo \(6 left\)/ }).waitFor({ timeout: 30_000 })
     await page.locator('input[type="file"]').setInputFiles(pixel)
     await page.locator("li", { hasText: "0% close" }).first().waitFor({ timeout: 30_000 })
@@ -69,13 +66,45 @@ async function main(): Promise<void> {
     transcript["storageKeys"] = await page.evaluate(() => Object.keys(window.localStorage))
     await page.screenshot({ path: join(OUT, "board.png"), scale: "css" })
 
+    // Burn object 1: six misses keep the run and offer the continue button.
+    for (let shot = 2; shot <= 6; shot++) {
+      await page.locator('input[type="file"]').setInputFiles(pixel)
+      await page
+        .locator("li", { hasText: `Photo ${shot} · 0% close` })
+        .first()
+        .waitFor({ timeout: 30_000 })
+    }
+    await page.getByText(/Out of photos on /).waitFor({ timeout: 30_000 })
+    transcript["failedOne"] = await page.getByText(/Out of photos on /).innerText()
+    await page.screenshot({ path: join(OUT, "failed-one.png"), scale: "css" })
+
+    // Burn objects 2 and 3: the day ends with every object named.
+    await page.getByRole("button", { name: "Continue to object 2", exact: true }).click()
+    for (let shot = 1; shot <= 6; shot++) {
+      await page.locator('input[type="file"]').setInputFiles(pixel)
+      await page
+        .locator("li", { hasText: `Photo ${shot} · 0% close` })
+        .first()
+        .waitFor({ timeout: 30_000 })
+    }
+    await page.getByRole("button", { name: "Continue to object 3", exact: true }).click()
+    for (let shot = 1; shot <= 6; shot++) {
+      await page.locator('input[type="file"]').setInputFiles(pixel)
+      await page
+        .locator("li", { hasText: `Photo ${shot} · 0% close` })
+        .first()
+        .waitFor({ timeout: 30_000 })
+    }
+    await page.getByText("Out of photos").waitFor({ timeout: 30_000 })
+    transcript["failedAll"] = await page.getByText(/Today's objects: /).innerText()
+    await page.screenshot({ path: join(OUT, "failed-all.png"), scale: "css" })
+
     await page.goto(`${ORIGIN}/?e2eScorer=solve`, { waitUntil: "domcontentloaded" })
     await page.evaluate(() => window.localStorage.clear())
     await page.reload({ waitUntil: "domcontentloaded" })
     const solveStart = page.getByRole("button", { name: "Start playing", exact: true })
     await solveStart.waitFor({ timeout: 30_000 })
     await solveStart.click()
-    await page.getByRole("button", { name: /^Choose/ }).first().click()
     await page.getByRole("button", { name: /Take photo \(6 left\)/ }).waitFor({ timeout: 30_000 })
     await page.locator('input[type="file"]').setInputFiles(pixel)
     await page.getByText("Found it!").waitFor({ timeout: 30_000 })
@@ -93,7 +122,6 @@ async function main(): Promise<void> {
     const start = page.getByRole("button", { name: "Start playing", exact: true })
     await start.waitFor({ timeout: 30_000 })
     await start.click()
-    await page.getByRole("button", { name: /^Choose/ }).first().click()
     await tapThemeSwitch(page, 10)
     await page.getByRole("heading", { name: "Dev mode", exact: true }).waitFor({ timeout: 10_000 })
     const devPanel = page.getByLabel("Developer mode")
@@ -104,7 +132,7 @@ async function main(): Promise<void> {
     await page.keyboard.press("Escape")
     await dialog.waitFor({ state: "detached", timeout: 10_000 })
     await devPanel.getByRole("button", { name: "Clear board" }).click()
-    await board.getByText("Pick today's object").waitFor({ timeout: 10_000 })
+    await board.getByText("Starting hint").waitFor({ timeout: 10_000 })
     await devPanel.getByRole("button", { name: "Error scorer status" }).click()
     await board.getByText("Photo scorer unavailable").waitFor({ timeout: 10_000 })
     transcript["devErrorStatus"] = "Photo scorer unavailable"

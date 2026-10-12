@@ -7,6 +7,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  histogramHeading,
+  maxStreakFact,
+  nextDayHeading,
+  playedFact,
+  sharedAction,
+  shareAction,
+  statsTitle,
+  streakFact,
+  winPercentFact,
+  wonFact,
+} from "@/copy.ts"
 import { winPercent, type Stats } from "@/game/stats.ts"
 
 export interface StatsDialogProps {
@@ -30,11 +42,11 @@ export function StatsDialog({
   onShare,
 }: StatsDialogProps) {
   const facts: ReadonlyArray<{ readonly label: string; readonly value: number }> = [
-    { label: "Played", value: stats.played },
-    { label: "Won", value: stats.wins },
-    { label: "Win %", value: winPercent(stats) },
-    { label: "Streak", value: stats.currentStreak },
-    { label: "Max", value: stats.maxStreak },
+    { label: playedFact, value: stats.played },
+    { label: wonFact, value: stats.wins },
+    { label: winPercentFact, value: winPercent(stats) },
+    { label: streakFact, value: stats.currentStreak },
+    { label: maxStreakFact, value: stats.maxStreak },
   ]
   const best = Math.max(1, ...stats.byGuesses)
 
@@ -42,7 +54,7 @@ export function StatsDialog({
     <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Statistics</DialogTitle>
+          <DialogTitle>{statsTitle}</DialogTitle>
           <DialogDescription>{shareLabel}</DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-5 gap-2 text-center">
@@ -54,7 +66,7 @@ export function StatsDialog({
           ))}
         </div>
         <div>
-          <h3 className="mb-2 text-sm font-semibold">Photos to solve</h3>
+          <h3 className="mb-2 text-sm font-semibold">{histogramHeading}</h3>
           <ol className="flex flex-col gap-1">
             {stats.byGuesses.map((count, index) => (
               <li className="flex items-center gap-2" key={index}>
@@ -72,13 +84,13 @@ export function StatsDialog({
         <div className="flex items-center justify-between gap-3 border-t pt-4">
           <div className="text-center">
             <div className="text-xs font-semibold tracking-wide text-muted-foreground">
-              NEXT DAY
+              {nextDayHeading}
             </div>
             <div className="text-xl font-bold tabular-nums">{countdown}</div>
           </div>
           <Button className="flex-1" onClick={onShare} variant="outline">
             <Share2 />
-            {shared ? "Copied!" : "Share score"}
+            {shared ? sharedAction : shareAction}
           </Button>
         </div>
       </DialogContent>

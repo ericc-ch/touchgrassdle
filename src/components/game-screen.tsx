@@ -3,7 +3,28 @@ import { ChartColumn, CircleQuestionMark } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { bestScore } from "@/game/state.ts"
+import {
+  appName,
+  continueAction,
+  dayHeading,
+  dayOverStatus,
+  failedDescription,
+  failedRunBody,
+  foundDescription,
+  foundStatus,
+  foundTitle,
+  howToPlayAction,
+  navLabel,
+  outOfPhotosHeading,
+  outOfPhotosStatus,
+  outOfPhotosTitle,
+  photosLeftStatus,
+  pickObjectStatus,
+  startingHintHeading,
+  statsShareLabel,
+  viewStatsAction,
+} from "@/copy.ts"
+import { bestScore, liveIds } from "@/game/state.ts"
 import { useDailyGame } from "@/game/session.ts"
 import { useNow } from "@/game/clock.ts"
 import { formatCountdown, msUntilNextDay } from "@/game/countdown.ts"
@@ -17,7 +38,6 @@ import { GiveUpButton } from "./give-up-button.tsx"
 import { GuessList } from "./guess-list.tsx"
 import { HowToPlayDialog } from "./how-to-play-dialog.tsx"
 import { ModelStatus } from "./model-status.tsx"
-import { PromptPicker } from "./prompt-picker.tsx"
 import { SolvedCard } from "./solved-card.tsx"
 import { StatsDialog } from "./stats-dialog.tsx"
 
@@ -27,7 +47,7 @@ function useCountdown(): string {
   return formatCountdown(msUntilNextDay(new Date(now)))
 }
 
-/** The daily photo game: pick a subject, take photos, get closeness %, hints, reveal, share. */
+/** The daily photo game: open an object, take photos, get closeness %, hints, reveal, share. */
 export function GameScreen() {
   const game = useDailyGame()
   const countdown = useCountdown()
@@ -66,31 +86,38 @@ export function GameScreen() {
   const labelOf = (id: string): string => labelById.get(id) ?? id
   const gaveUpLabels = game.day.gaveUpIds.map(labelOf)
   const choiceLabel = game.chosen === null ? null : game.chosen.label
+  const position =
+    game.day.choiceId === null
+      ? 0
+      : today.prompts.findIndex((prompt) => prompt.id === game.day.choiceId) + 1
+  const nextLive = liveIds(game.day)[0]
+  const nextPosition =
+    nextLive === undefined ? 0 : today.prompts.findIndex((prompt) => prompt.id === nextLive) + 1
 
   const statusLine = game.solved
-    ? `found · best ${bestScore(game.day)}%`
+    ? foundStatus(bestScore(game.day))
     : game.over
-      ? "day over"
+      ? dayOverStatus
       : game.failedCurrent
-        ? "out of photos"
+        ? outOfPhotosStatus
         : game.chosen === null
-          ? "pick an object"
-          : `${game.remaining} photos left`
+          ? pickObjectStatus
+          : photosLeftStatus(game.remaining)
 
   const showSwitch = game.open && game.chosen !== null
-
-  const solvedTitle = "Found it!"
-  const photoWord = game.day.guesses.length === 1 ? "photo" : "photos"
   const solvedDescription =
     choiceLabel === null
       ? ""
-      : `It was ${choiceLabel}. Found in ${game.day.guesses.length} ${photoWord}. Best ${bestScore(game.day)}%.` +
-        (gaveUpLabels.length === 0 ? "" : ` Skipped: ${gaveUpLabels.join(", ")}.`)
-  const failedDescription = `Today's objects: ${today.prompts.map((prompt) => prompt.label).join(", ")}.`
+      : foundDescription({
+          label: choiceLabel,
+          guessesUsed: game.day.guesses.length,
+          best: bestScore(game.day),
+          skipped: gaveUpLabels,
+        })
   const shareLabel =
     game.solved && choiceLabel !== null
-      ? `Day #${game.dayNumber} — ${choiceLabel} found in ${game.day.guesses.length}`
-      : `Day #${game.dayNumber} — not found`
+      ? statsShareLabel(game.dayNumber, choiceLabel, game.day.guesses.length)
+      : statsShareLabel(game.dayNumber, null, 0)
 
   const boardLine =
     game.chosen === null
@@ -101,10 +128,10 @@ export function GameScreen() {
     <div className="flex h-dvh flex-col">
       <header className="shrink-0 border-b">
         <div className="mx-auto flex w-full max-w-md items-center justify-between gap-2 px-4 py-2.5">
-          <h1 className="text-lg font-bold tracking-tight">Snapdle</h1>
-          <nav aria-label="Game" className="flex items-center gap-0.5">
+          <h1 className="text-lg font-bold tracking-tight">{appName}</h1>
+          <nav aria-label={navLabel} className="flex items-center gap-0.5">
             <Button
-              aria-label="How to play"
+              aria-label={howToPlayAction}
               onClick={() => setHowToOpen(true)}
               size="icon-sm"
               variant="ghost"
@@ -112,7 +139,7 @@ export function GameScreen() {
               <CircleQuestionMark />
             </Button>
             <Button
-              aria-label="View statistics"
+              aria-label={viewStatsAction}
               onClick={() => setStatsOpen(true)}
               size="icon-sm"
               variant="ghost"
@@ -125,14 +152,19 @@ export function GameScreen() {
       </header>
       <main className="flex min-h-0 flex-1 flex-col">
         <div className="mx-auto flex h-full w-full max-w-md flex-col gap-2 px-4 pt-3">
-          <div className="flex shrink-0 items-center justify-between">
-            <h2 className="text-sm font-semibold">Day #{game.dayNumber}</h2>
+          <div className="flex shrink-0 items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold">{dayHeading(game.dayNumber)}</h2>
             <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <span>{statusLine}</span>
               {showSwitch ? (
                 <>
                   <span aria-hidden="true">·</span>
-                  <GiveUpButton key={game.day.choiceId} onGiveUp={game.giveUpChoice} />
+                  <GiveUpButton
+                    key={game.day.choiceId}
+                    onGiveUp={game.advance}
+                    position={position}
+                    total={today.prompts.length}
+                  />
                 </>
               ) : null}
             </span>
@@ -141,7 +173,7 @@ export function GameScreen() {
           {game.chosen === null || game.failedCurrent ? null : (
             <Card className="shrink-0 py-2" size="sm">
               <CardContent className="flex flex-col gap-0.5">
-                <span className="text-sm font-semibold">Starting hint</span>
+                <span className="text-sm font-semibold">{startingHintHeading}</span>
                 <p className="break-words text-sm whitespace-pre-wrap text-muted-foreground">
                   {game.chosen.clues.frozen}
                 </p>
@@ -152,36 +184,17 @@ export function GameScreen() {
           {game.failedCurrent && choiceLabel !== null && !ended ? (
             <Card className="shrink-0 py-2" size="sm">
               <CardContent className="flex flex-col gap-0.5">
-                <span className="text-sm font-semibold">Out of photos on {choiceLabel}</span>
+                <span className="text-sm font-semibold">{outOfPhotosHeading(choiceLabel)}</span>
                 <p className="break-words text-sm whitespace-pre-wrap text-muted-foreground">
-                  That object stays dead. Pick another object below. You get 6 new photos.
+                  {failedRunBody}
                 </p>
               </CardContent>
             </Card>
           ) : null}
 
           <div className="min-h-0 flex-1 overflow-y-auto">
-            {game.chosen === null ? (
-              ended ? null : (
-                <PromptPicker
-                  deadIds={game.day.deadIds}
-                  gaveUpIds={game.day.gaveUpIds}
-                  onChoose={game.choose}
-                  prompts={game.prompts}
-                />
-              )
-            ) : (
-              <div className="flex flex-col gap-2">
-                <GuessList day={game.day} prompt={game.chosen} thumbnails={game.thumbnails} />
-                {game.failedCurrent && !ended ? (
-                  <PromptPicker
-                    deadIds={game.day.deadIds}
-                    gaveUpIds={game.day.gaveUpIds}
-                    onChoose={game.choose}
-                    prompts={game.prompts}
-                  />
-                ) : null}
-              </div>
+            {game.chosen === null ? null : (
+              <GuessList day={game.day} prompt={game.chosen} thumbnails={game.thumbnails} />
             )}
           </div>
 
@@ -199,7 +212,7 @@ export function GameScreen() {
           {game.notice !== null ? (
             <Alert
               className="shrink-0"
-              variant={game.notice.startsWith("Snapdle") ? "default" : "destructive"}
+              variant={game.notice.startsWith(appName) ? "default" : "destructive"}
             >
               <AlertDescription className="break-words whitespace-pre-wrap">
                 {game.notice}
@@ -211,13 +224,21 @@ export function GameScreen() {
             {ended ? (
               <SolvedCard
                 countdown={countdown}
-                description={game.solved ? solvedDescription : failedDescription}
+                description={
+                  game.solved
+                    ? solvedDescription
+                    : failedDescription(today.prompts.map((prompt) => prompt.label))
+                }
                 onShare={game.share}
                 onStats={() => setStatsOpen(true)}
                 shared={game.shared}
-                title={game.solved ? solvedTitle : "Out of photos"}
+                title={game.solved ? foundTitle : outOfPhotosTitle}
               />
-            ) : game.failedCurrent || game.chosen === null ? null : (
+            ) : game.failedCurrent ? (
+              <Button className="w-full" onClick={game.advance} size="lg">
+                {continueAction(nextPosition)}
+              </Button>
+            ) : game.chosen === null ? null : (
               <CaptureButton
                 disabled={!game.open}
                 onFile={game.scorePhoto}

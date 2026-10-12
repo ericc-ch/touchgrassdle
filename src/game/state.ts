@@ -15,11 +15,10 @@ const TripleIds = Schema.Tuple([Schema.String, Schema.String, Schema.String])
 export type TripleIds = typeof TripleIds.Type
 
 /**
- * One pick-1-of-3 day. `guesses` holds the current choice's run only:
- * choosing a prompt starts a fresh run, giving up clears the run and
- * kills the prompt for the day. A choice that burns 6 photos without
- * solving dies the same way but keeps its run on the board for the
- * share card.
+ * One linear pick-1-of-3 day. The day opens on the first object and
+ * `advance` moves to the next live one. `guesses` holds the current
+ * run only. A run that burns 6 photos without solving dies but keeps
+ * its run on the board for the share card.
  */
 export const DayState = Schema.Struct({
   dateKey: Schema.String,
@@ -32,7 +31,7 @@ export const DayState = Schema.Struct({
 export type DayState = typeof DayState.Type
 
 /**
- * Fresh day with no choice yet.
+ * Fresh day, opened on the first object of the triple.
  *
  * @example
  * ```ts
@@ -40,7 +39,14 @@ export type DayState = typeof DayState.Type
  * ```
  */
 export function newDay(dateKey: string, tripleIds: TripleIds): DayState {
-  return { dateKey, tripleIds, choiceId: null, deadIds: [], gaveUpIds: [], guesses: [] }
+  return {
+    dateKey,
+    tripleIds,
+    choiceId: tripleIds[0],
+    deadIds: [],
+    gaveUpIds: [],
+    guesses: [],
+  }
 }
 
 /** True once any guess reaches the solve threshold. */
@@ -117,31 +123,27 @@ export function recordGuess(day: DayState, input: RecordGuessInput): DayState {
 }
 
 /**
- * Pick a live prompt. Starts a fresh 6-photo run, clearing whatever run
- * was on the board. Returns the unchanged day for dead ids, unknown ids,
- * or a decided day.
+ * Move to the next live object. Quits the current pick when it is still
+ * alive, then starts a fresh run on the first live object. With no live
+ * objects left the day ends and the board clears.
  *
  * @example
  * ```ts
- * choosePrompt(newDay("2026-10-09", triple), "bicycle") // choiceId "bicycle"
+ * advance(newDay("2026-10-09", triple)) // choiceId "wall-clock"
  * ```
  */
-export function choosePrompt(day: DayState, id: string): DayState {
-  if (dayOver(day) || !day.tripleIds.includes(id) || isDead(day, id)) {
+export function advance(day: DayState): DayState {
+  if (dayOver(day)) {
     return day
   }
-  return { ...day, choiceId: id, guesses: [] }
-}
-
-/**
- * Give up the current choice. The prompt dies for the day, the run is
- * cleared, and the board returns to the picker. Returns the unchanged
- * day with no live choice.
- */
-export function giveUp(day: DayState): DayState {
   const choice = day.choiceId
-  if (choice === null || isDead(day, choice) || isSolved(day)) {
-    return day
+  const base =
+    choice !== null && !isDead(day, choice) && !isSolved(day)
+      ? { ...day, gaveUpIds: [...day.gaveUpIds, choice] }
+      : day
+  const next = liveIds(base)[0]
+  if (next === undefined) {
+    return { ...base, choiceId: null, guesses: [] }
   }
-  return { ...day, choiceId: null, gaveUpIds: [...day.gaveUpIds, choice], guesses: [] }
+  return { ...base, choiceId: next, guesses: [] }
 }

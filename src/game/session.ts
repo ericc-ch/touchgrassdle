@@ -14,12 +14,10 @@ import {
   subscribeScorer,
 } from "./scorer.ts"
 import {
+  advance,
   boardFailed,
   canGuess,
-  choosePrompt,
   dayOver,
-  giveUp,
-  isDead,
   isSolved,
   newDay,
   recordGuess,
@@ -28,7 +26,8 @@ import {
 } from "./state.ts"
 import { loadStats, recordDay, saveStats, type Stats } from "./stats.ts"
 import { formatShareCard } from "./share.ts"
-import { loadStoredDay, saveStoredDay } from "./storage.ts"
+import { loadStoredDay, saveStoredDay, type StoredDay } from "./storage.ts"
+import { copyFailedNotice, scoreFailedNotice } from "../copy.ts"
 
 export type GameStatus = "loading-model" | "ready" | "model-error"
 
@@ -40,7 +39,6 @@ export interface DailyGame {
   readonly day: DayState
   readonly prompts: ReadonlyArray<Prompt>
   readonly chosen: Prompt | null
-  readonly livePrompts: ReadonlyArray<Prompt>
   readonly stats: Stats
   readonly thumbnails: ReadonlyArray<string>
   readonly scoring: boolean
@@ -54,8 +52,7 @@ export interface DailyGame {
   readonly latestClue: string | null
   readonly retryLoad: () => void
   readonly scorePhoto: (file: File) => void
-  readonly choose: (id: string) => void
-  readonly giveUpChoice: () => void
+  readonly advance: () => void
   readonly share: () => void
   readonly dev: DevControls
 }
@@ -98,6 +95,25 @@ function matchesToday(stored: DayState, dateKey: string, ids: ReadonlyArray<stri
     stored.tripleIds.length === ids.length &&
     stored.tripleIds.every((id, index) => id === ids[index])
   )
+}
+
+/**
+ * Restore a stored day, moving picker-era saves (no choice yet) onto the
+ * first live object. Anything foreign starts fresh.
+ */
+function reviveDay(
+  stored: StoredDay | null,
+  dateKey: string,
+  tripleIds: TripleIds,
+): { readonly day: DayState; readonly keepPhotos: boolean } {
+  if (stored !== null && matchesToday(stored.day, dateKey, tripleIds)) {
+    const day = stored.day
+    if (!dayOver(day) && (day.choiceId === null || !tripleIds.includes(day.choiceId))) {
+      return { day: advance(day), keepPhotos: false }
+    }
+    return { day, keepPhotos: true }
+  }
+  return { day: newDay(dateKey, tripleIds), keepPhotos: false }
 }
 
 /**
@@ -153,17 +169,12 @@ export function useDailyGame(): DailyGame {
   const modelError = errorOverride ?? loader.error ?? promptError
   const [day, setDay] = useState<DayState>(() => {
     const stored = loadStoredDay(today.dateKey)
-    if (stored !== null && matchesToday(stored.day, today.dateKey, tripleIds)) {
-      return stored.day
-    }
-    return newDay(today.dateKey, tripleIds)
+    return reviveDay(stored, today.dateKey, tripleIds).day
   })
   const [thumbnails, setThumbnails] = useState<ReadonlyArray<string>>(() => {
     const stored = loadStoredDay(today.dateKey)
-    if (stored !== null && matchesToday(stored.day, today.dateKey, tripleIds)) {
-      return stored.thumbnails
-    }
-    return []
+    const revived = reviveDay(stored, today.dateKey, tripleIds)
+    return revived.keepPhotos && stored !== null ? stored.thumbnails : []
   })
 
   const persist = useCallback(
@@ -196,7 +207,6 @@ export function useDailyGame(): DailyGame {
       ? null
       : (today.prompts.find((prompt) => prompt.id === day.choiceId) ?? null)
   const promptVector = chosen === null ? null : (promptStore.embeddings[chosen.id] ?? null)
-  const livePrompts = today.prompts.filter((prompt) => !isDead(day, prompt.id))
 
   const scorePhoto = useCallback(
     (file: File) => {
@@ -226,7 +236,7 @@ export function useDailyGame(): DailyGame {
           setScoring(false)
         },
         (cause: unknown) => {
-          setNotice(`Couldn't score that photo: ${errorMessage(cause)}`)
+          setNotice(scoreFailedNotice(errorMessage(cause)))
           setScoring(false)
         },
       )
@@ -234,19 +244,8 @@ export function useDailyGame(): DailyGame {
     [loader.scorer, promptVector, scoring, day, thumbnails, persist],
   )
 
-  const choose = useCallback(
-    (id: string) => {
-      const next = choosePrompt(day, id)
-      if (next !== day) {
-        setNotice(null)
-        persist(next, [])
-      }
-    },
-    [day, persist],
-  )
-
-  const giveUpChoice = useCallback(() => {
-    const next = giveUp(day)
+  const advanceDay = useCallback(() => {
+    const next = advance(day)
     if (next !== day) {
       setNotice(null)
       persist(next, [])
@@ -261,9 +260,7 @@ export function useDailyGame(): DailyGame {
     })
     const done = () => setShared(true)
     if (typeof navigator.clipboard?.writeText === "function") {
-      void navigator.clipboard
-        .writeText(text)
-        .then(done, () => setNotice("Copy failed — long-press the card instead."))
+      void navigator.clipboard.writeText(text).then(done, () => setNotice(copyFailedNotice))
     } else {
       setNotice(text)
     }
@@ -337,7 +334,6 @@ export function useDailyGame(): DailyGame {
     day,
     prompts: today.prompts,
     chosen,
-    livePrompts,
     stats,
     thumbnails,
     scoring,
@@ -351,8 +347,7 @@ export function useDailyGame(): DailyGame {
     latestClue,
     retryLoad,
     scorePhoto,
-    choose,
-    giveUpChoice,
+    advance: advanceDay,
     share,
     dev: {
       addFakeGuess,
