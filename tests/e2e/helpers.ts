@@ -24,8 +24,13 @@ export function pixelPngPath(): string {
  * `fail` shows photo-scorer-unavailable. No model download, fully deterministic.
  * Dismisses the first-visit How to Play dialog, except in `fail` mode
  * where Play never enables (the dialog itself carries the Retry path).
+ * Then picks the first of the three daily subjects, unless `pick` is false.
  */
-export async function gotoStub(page: Page, mode: "stub" | "solve" | "fail"): Promise<void> {
+export async function gotoStub(
+  page: Page,
+  mode: "stub" | "solve" | "fail",
+  options?: { readonly pick?: boolean },
+): Promise<void> {
   await page.goto(`/?e2eScorer=${mode}`, { waitUntil: "domcontentloaded" })
   if (mode === "fail") {
     return
@@ -33,4 +38,11 @@ export async function gotoStub(page: Page, mode: "stub" | "solve" | "fail"): Pro
   const start = page.getByRole("button", { name: "Start playing", exact: true })
   await start.waitFor({ timeout: 15_000 })
   await start.click()
+  if (options?.pick === false) {
+    return
+  }
+  await page
+    .getByRole("button", { name: /^Choose / })
+    .first()
+    .click()
 }

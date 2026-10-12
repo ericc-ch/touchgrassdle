@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState, useSyncExternalStore } from "react"
 import { Effect } from "effect"
 import { fileToThumbnail } from "./photo.ts"
-import { clueForAttempt, promptFor, QUERY_PREFIX, shareDayNumber } from "./prompts.ts"
+import { clueForAttempt, tripleFor, QUERY_PREFIX, shareDayNumber, type Prompt } from "./prompts.ts"
 import { MAX_GUESSES, cosineSimilarity, temperatureFor, toScore } from "./scoring.ts"
 import {
   EmbedError,
@@ -13,7 +13,19 @@ import {
   subscribePromptEmbeddings,
   subscribeScorer,
 } from "./scorer.ts"
-import { canGuess, isSolved, newDay, recordGuess, type DayState } from "./state.ts"
+import {
+  boardFailed,
+  canGuess,
+  choosePrompt,
+  dayOver,
+  giveUp,
+  isDead,
+  isSolved,
+  newDay,
+  recordGuess,
+  type DayState,
+  type TripleIds,
+} from "./state.ts"
 import { loadStats, recordDay, saveStats, type Stats } from "./stats.ts"
 import { formatShareCard } from "./share.ts"
 import { loadStoredDay, saveStoredDay } from "./storage.ts"
@@ -26,17 +38,24 @@ export interface DailyGame {
   readonly modelError: string | null
   readonly dayNumber: number
   readonly day: DayState
+  readonly prompts: ReadonlyArray<Prompt>
+  readonly chosen: Prompt | null
+  readonly livePrompts: ReadonlyArray<Prompt>
   readonly stats: Stats
   readonly thumbnails: ReadonlyArray<string>
   readonly scoring: boolean
   readonly notice: string | null
   readonly shared: boolean
   readonly solved: boolean
+  readonly over: boolean
   readonly open: boolean
+  readonly failedCurrent: boolean
   readonly remaining: number
   readonly latestClue: string | null
   readonly retryLoad: () => void
   readonly scorePhoto: (file: File) => void
+  readonly choose: (id: string) => void
+  readonly giveUpChoice: () => void
   readonly share: () => void
   readonly dev: DevControls
 }
@@ -72,25 +91,45 @@ const errorMessage = (cause: unknown): string =>
       ? cause.message
       : String(cause)
 
+/** True when a stored day belongs to today's triple. Anything else starts fresh. */
+function matchesToday(stored: DayState, dateKey: string, ids: ReadonlyArray<string>): boolean {
+  return (
+    stored.dateKey === dateKey &&
+    stored.tripleIds.length === ids.length &&
+    stored.tripleIds.every((id, index) => id === ids[index])
+  )
+}
+
 /**
  * Owns one daily photo game: model loading, scoring flow, persistence, sharing.
  * Photos stay in memory + thumbnails in localStorage; nothing uploads.
  */
 export function useDailyGame(): DailyGame {
-  const today = useMemo(() => promptFor(new Date()), [])
+  const today = useMemo(() => tripleFor(new Date()), [])
   const dayNumber = useMemo(() => shareDayNumber(new Date()), [])
+  const tripleIds = useMemo((): TripleIds => {
+    const [a, b, c] = today.prompts.map((prompt) => prompt.id)
+    if (a === undefined || b === undefined || c === undefined) {
+      throw new Error("daily triple misaligned")
+    }
+    return [a, b, c]
+  }, [today])
 
   // Shared scorer lifecycle: one load for all mounts, StrictMode-safe.
   // ensureScorer is idempotent; the store dedupes concurrent calls.
-  // Today's puzzle vector is encoded on-device once the text encoder
-  // is ready; the same dedupe pattern covers StrictMode remounts.
+  // All three puzzle vectors are encoded on-device once the text encoder
+  // is ready, so picking a prompt never waits on an encode.
   const loader = useSyncExternalStore(subscribeScorer, getScorerSnapshot)
   const promptStore = useSyncExternalStore(subscribePromptEmbeddings, getPromptEmbeddingsSnapshot)
   ensureScorer()
   if (loader.scorer !== null) {
-    ensurePromptEmbedding(today.prompt.id, `${QUERY_PREFIX}${today.prompt.query}`)
+    for (const prompt of today.prompts) {
+      ensurePromptEmbedding(prompt.id, `${QUERY_PREFIX}${prompt.query}`)
+    }
   }
-  const promptVector = promptStore.embeddings[today.prompt.id] ?? null
+  const vectorsReady = today.prompts.every(
+    (prompt) => promptStore.embeddings[prompt.id] !== undefined,
+  )
   const promptError = promptStore.error
   const [scoring, setScoring] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
@@ -104,7 +143,7 @@ export function useDailyGame(): DailyGame {
     baseStatus = "model-error"
   } else if (promptError !== null) {
     baseStatus = "model-error"
-  } else if (loader.status !== "ready" || promptVector === null) {
+  } else if (loader.status !== "ready" || !vectorsReady) {
     baseStatus = "loading-model"
   } else {
     baseStatus = "ready"
@@ -114,14 +153,14 @@ export function useDailyGame(): DailyGame {
   const modelError = errorOverride ?? loader.error ?? promptError
   const [day, setDay] = useState<DayState>(() => {
     const stored = loadStoredDay(today.dateKey)
-    if (stored !== null && stored.day.promptId === today.prompt.id) {
+    if (stored !== null && matchesToday(stored.day, today.dateKey, tripleIds)) {
       return stored.day
     }
-    return newDay(today.dateKey, today.prompt.id)
+    return newDay(today.dateKey, tripleIds)
   })
   const [thumbnails, setThumbnails] = useState<ReadonlyArray<string>>(() => {
     const stored = loadStoredDay(today.dateKey)
-    if (stored !== null && stored.day.promptId === today.prompt.id) {
+    if (stored !== null && matchesToday(stored.day, today.dateKey, tripleIds)) {
       return stored.thumbnails
     }
     return []
@@ -133,8 +172,9 @@ export function useDailyGame(): DailyGame {
       setThumbnails(nextThumbnails)
       saveStoredDay(today.dateKey, { day: next, thumbnails: [...nextThumbnails] })
       // Only completed days count: recordDay is idempotent per dateKey,
-      // so reloads and re-renders never double-count.
-      if (!canGuess(next)) {
+      // so reloads and re-renders never double-count. The histogram takes
+      // the winning run's length; abandoned runs never reach it.
+      if (dayOver(next)) {
         const nextStats = recordDay(stats, {
           dateKey: next.dateKey,
           solved: isSolved(next),
@@ -150,6 +190,13 @@ export function useDailyGame(): DailyGame {
   const retryLoad = useCallback(() => {
     retryScorer()
   }, [])
+
+  const chosen: Prompt | null =
+    day.choiceId === null
+      ? null
+      : (today.prompts.find((prompt) => prompt.id === day.choiceId) ?? null)
+  const promptVector = chosen === null ? null : (promptStore.embeddings[chosen.id] ?? null)
+  const livePrompts = today.prompts.filter((prompt) => !isDead(day, prompt.id))
 
   const scorePhoto = useCallback(
     (file: File) => {
@@ -184,11 +231,34 @@ export function useDailyGame(): DailyGame {
         },
       )
     },
-    [loader.scorer, promptVector, scoring, day, thumbnails, persist, today.prompt],
+    [loader.scorer, promptVector, scoring, day, thumbnails, persist],
   )
 
+  const choose = useCallback(
+    (id: string) => {
+      const next = choosePrompt(day, id)
+      if (next !== day) {
+        setNotice(null)
+        persist(next, [])
+      }
+    },
+    [day, persist],
+  )
+
+  const giveUpChoice = useCallback(() => {
+    const next = giveUp(day)
+    if (next !== day) {
+      setNotice(null)
+      persist(next, [])
+    }
+  }, [day, persist])
+
   const share = useCallback(() => {
-    const text = formatShareCard(dayNumber, day)
+    const byId = new Map(today.prompts.map((prompt) => [prompt.id, prompt.label] as const))
+    const text = formatShareCard(dayNumber, day, {
+      choiceLabel: chosen === null ? null : chosen.label,
+      gaveUpLabels: day.gaveUpIds.map((id) => byId.get(id) ?? id),
+    })
     const done = () => setShared(true)
     if (typeof navigator.clipboard?.writeText === "function") {
       void navigator.clipboard
@@ -197,12 +267,16 @@ export function useDailyGame(): DailyGame {
     } else {
       setNotice(text)
     }
-  }, [dayNumber, day])
+  }, [dayNumber, day, today.prompts, chosen])
 
   const solved = isSolved(day)
+  const over = dayOver(day)
   const open = canGuess(day)
+  const failedCurrent = boardFailed(day)
   const latestClue =
-    day.guesses.length === 0 ? null : clueForAttempt(today.prompt, day.guesses.length - 1)
+    chosen === null || day.guesses.length === 0
+      ? null
+      : clueForAttempt(chosen, day.guesses.length - 1)
 
   const addFakeGuess = useCallback(
     (score: number) => {
@@ -216,7 +290,7 @@ export function useDailyGame(): DailyGame {
         fakeThumbnail(clamped),
       ])
     },
-    [day, thumbnails, persist, today.prompt],
+    [day, thumbnails, persist],
   )
 
   const solveNow = useCallback(() => {
@@ -238,14 +312,14 @@ export function useDailyGame(): DailyGame {
       nextThumbnails.push(fakeThumbnail(clamped))
     }
     persist(next, nextThumbnails)
-  }, [day, thumbnails, persist, today.prompt.clues])
+  }, [day, thumbnails, persist])
 
   const clearBoard = useCallback(() => {
     setNotice(null)
     setScoring(false)
     setShared(false)
-    persist(newDay(today.dateKey, today.prompt.id), [])
-  }, [persist, today.dateKey, today.prompt.id])
+    persist(newDay(today.dateKey, tripleIds), [])
+  }, [persist, today.dateKey, tripleIds])
 
   const setNoticeText = useCallback((text: string | null) => {
     setNotice(text)
@@ -261,17 +335,24 @@ export function useDailyGame(): DailyGame {
     modelError,
     dayNumber,
     day,
+    prompts: today.prompts,
+    chosen,
+    livePrompts,
     stats,
     thumbnails,
     scoring,
     notice,
     shared,
     solved,
+    over,
     open,
+    failedCurrent,
     remaining: MAX_GUESSES - day.guesses.length,
     latestClue,
     retryLoad,
     scorePhoto,
+    choose,
+    giveUpChoice,
     share,
     dev: {
       addFakeGuess,

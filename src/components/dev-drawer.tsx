@@ -7,8 +7,7 @@ import type { DailyGame, GameStatus } from "@/game/session.ts"
 
 export interface DevDrawerProps {
   readonly game: DailyGame
-  readonly promptLabel: string
-  readonly promptId: string
+  readonly boardLine: string
   readonly onHowTo: () => void
   readonly onStats: () => void
 }
@@ -47,7 +46,7 @@ function clearDevStorage(): void {
  * ends. Every button mutates the live game in place — the board above is
  * the thing under test, nothing here is a preview.
  */
-export function DevDrawer({ game, promptLabel, promptId, onHowTo, onStats }: DevDrawerProps) {
+export function DevDrawer({ game, boardLine, onHowTo, onStats }: DevDrawerProps) {
   const { dev } = game
   const boardLocked = !game.open || game.scoring
   const statusValue = dev.statusOverride === null ? "real" : STATUS_VALUE[dev.statusOverride]
@@ -94,8 +93,8 @@ export function DevDrawer({ game, promptLabel, promptId, onHowTo, onStats }: Dev
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          Day #{game.dayNumber} · {promptLabel} ({promptId}) · {game.status} ·{" "}
-          {game.day.guesses.length} photos · {game.solved ? "found" : game.open ? "open" : "closed"}
+          Day #{game.dayNumber} · {boardLine} · {game.status} · {game.day.guesses.length} photos ·{" "}
+          {game.solved ? "found" : game.open ? "open" : "closed"}
         </p>
 
         <Card>

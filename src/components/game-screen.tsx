@@ -7,15 +7,17 @@ import { bestScore } from "@/game/state.ts"
 import { useDailyGame } from "@/game/session.ts"
 import { useNow } from "@/game/clock.ts"
 import { formatCountdown, msUntilNextDay } from "@/game/countdown.ts"
-import { promptFor } from "@/game/prompts.ts"
+import { tripleFor } from "@/game/prompts.ts"
 import { hasSeenHowTo, markSeenHowTo } from "@/game/storage.ts"
 import { ThemeSwitch } from "@/theme/switch.tsx"
 import { noteThemeTap, useDevMode } from "@/game/dev-mode.ts"
 import { CaptureButton } from "./capture-button.tsx"
 import { DevDrawer } from "./dev-drawer.tsx"
+import { GiveUpButton } from "./give-up-button.tsx"
 import { GuessList } from "./guess-list.tsx"
 import { HowToPlayDialog } from "./how-to-play-dialog.tsx"
 import { ModelStatus } from "./model-status.tsx"
+import { PromptPicker } from "./prompt-picker.tsx"
 import { SolvedCard } from "./solved-card.tsx"
 import { StatsDialog } from "./stats-dialog.tsx"
 
@@ -25,7 +27,7 @@ function useCountdown(): string {
   return formatCountdown(msUntilNextDay(new Date(now)))
 }
 
-/** The daily photo game: take photos, get closeness %, hints, reveal, share. */
+/** The daily photo game: pick a subject, take photos, get closeness %, hints, reveal, share. */
 export function GameScreen() {
   const game = useDailyGame()
   const countdown = useCountdown()
@@ -35,7 +37,7 @@ export function GameScreen() {
   // Open stats once when the day ends. Render-time derivation replaces
   // the effect: same timing, no subscription, StrictMode-safe.
   const [wasEnded, setWasEnded] = useState(false)
-  const ended = game.status === "ready" && !game.open
+  const ended = game.status === "ready" && game.over
   if (ended !== wasEnded) {
     setWasEnded(ended)
     if (ended) {
@@ -59,7 +61,38 @@ export function GameScreen() {
     setHowToOpen(false)
   }
 
-  const today = promptFor(new Date())
+  const today = tripleFor(new Date())
+  const labelById = new Map(today.prompts.map((prompt) => [prompt.id, prompt.label] as const))
+  const labelOf = (id: string): string => labelById.get(id) ?? id
+  const gaveUpLabels = game.day.gaveUpIds.map(labelOf)
+  const choiceLabel = game.chosen === null ? null : game.chosen.label
+
+  const statusLine = game.solved
+    ? `found · best ${bestScore(game.day)}%`
+    : game.over
+      ? "day over"
+      : game.failedCurrent
+        ? "out of photos"
+        : game.chosen === null
+          ? "pick a subject"
+          : `${game.remaining} photos left`
+
+  const solvedTitle = "Found it!"
+  const solvedDescription =
+    choiceLabel === null
+      ? ""
+      : `It was ${choiceLabel} — found in ${game.day.guesses.length} ${game.day.guesses.length === 1 ? "photo" : "photos"} (best ${bestScore(game.day)}%).` +
+        (gaveUpLabels.length === 0 ? "" : ` Gave up: ${gaveUpLabels.join(", ")}.`)
+  const failedDescription = `Today's subjects were: ${today.prompts.map((prompt) => prompt.label).join(", ")}.`
+  const shareLabel =
+    game.solved && choiceLabel !== null
+      ? `Day #${game.dayNumber} — ${choiceLabel} found in ${game.day.guesses.length}`
+      : `Day #${game.dayNumber} — not found`
+
+  const boardLine =
+    game.chosen === null
+      ? `no choice · dead ${gaveUpLabels.join(", ") || "none"}`
+      : `${game.chosen.label} (${game.chosen.id}) · dead ${gaveUpLabels.join(", ") || "none"}`
 
   return (
     <div className="flex h-dvh flex-col">
@@ -91,24 +124,54 @@ export function GameScreen() {
         <div className="mx-auto flex h-full w-full max-w-md flex-col gap-2 px-4 pt-3">
           <div className="flex shrink-0 items-center justify-between">
             <h2 className="text-sm font-semibold">Day #{game.dayNumber}</h2>
-            <span className="text-sm text-muted-foreground">
-              {game.solved
-                ? `found · best ${bestScore(game.day)}%`
-                : `${game.remaining} photos left`}
-            </span>
+            <span className="text-sm text-muted-foreground">{statusLine}</span>
           </div>
 
-          <Card className="shrink-0 py-2" size="sm">
-            <CardContent className="flex flex-col gap-0.5">
-              <span className="text-sm font-semibold">Starting hint</span>
-              <p className="break-words text-sm whitespace-pre-wrap text-muted-foreground">
-                {today.prompt.clues.frozen}
-              </p>
-            </CardContent>
-          </Card>
+          {game.chosen === null || game.failedCurrent ? null : (
+            <Card className="shrink-0 py-2" size="sm">
+              <CardContent className="flex flex-col gap-0.5">
+                <span className="text-sm font-semibold">Starting hint</span>
+                <p className="break-words text-sm whitespace-pre-wrap text-muted-foreground">
+                  {game.chosen.clues.frozen}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {game.failedCurrent && choiceLabel !== null && !ended ? (
+            <Card className="shrink-0 py-2" size="sm">
+              <CardContent className="flex flex-col gap-0.5">
+                <span className="text-sm font-semibold">Out of photos on {choiceLabel}</span>
+                <p className="break-words text-sm whitespace-pre-wrap text-muted-foreground">
+                  That subject stays dead. Pick another below for a fresh 6.
+                </p>
+              </CardContent>
+            </Card>
+          ) : null}
 
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <GuessList day={game.day} prompt={today.prompt} thumbnails={game.thumbnails} />
+            {game.chosen === null ? (
+              ended ? null : (
+                <PromptPicker
+                  deadIds={game.day.deadIds}
+                  gaveUpIds={game.day.gaveUpIds}
+                  onChoose={game.choose}
+                  prompts={game.prompts}
+                />
+              )
+            ) : (
+              <div className="flex flex-col gap-2">
+                <GuessList day={game.day} prompt={game.chosen} thumbnails={game.thumbnails} />
+                {game.failedCurrent && !ended ? (
+                  <PromptPicker
+                    deadIds={game.day.deadIds}
+                    gaveUpIds={game.day.gaveUpIds}
+                    onChoose={game.choose}
+                    prompts={game.prompts}
+                  />
+                ) : null}
+              </div>
+            )}
           </div>
 
           {showSlimLoader ? (
@@ -136,23 +199,30 @@ export function GameScreen() {
           <div className="shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             {ended ? (
               <SolvedCard
-                best={bestScore(game.day)}
                 countdown={countdown}
-                failed={!game.solved}
-                guessesUsed={game.day.guesses.length}
-                label={today.prompt.label}
+                description={game.solved ? solvedDescription : failedDescription}
                 onShare={game.share}
                 onStats={() => setStatsOpen(true)}
                 shared={game.shared}
+                title={game.solved ? solvedTitle : "Out of photos"}
               />
-            ) : (
-              <CaptureButton
-                disabled={!game.open}
-                onFile={game.scorePhoto}
-                remaining={game.remaining}
-                scoring={game.scoring}
-                waiting={game.open && !ready}
-              />
+            ) : game.failedCurrent || game.chosen === null ? null : (
+              <div className="flex w-full flex-col gap-2">
+                <CaptureButton
+                  disabled={!game.open}
+                  onFile={game.scorePhoto}
+                  remaining={game.remaining}
+                  scoring={game.scoring}
+                  waiting={game.open && !ready}
+                />
+                {choiceLabel === null ? null : (
+                  <GiveUpButton
+                    key={game.day.choiceId}
+                    label={choiceLabel}
+                    onGiveUp={game.giveUpChoice}
+                  />
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -174,17 +244,16 @@ export function GameScreen() {
         onOpenChange={setStatsOpen}
         onShare={game.share}
         open={statsOpen}
-        shareLabel={`Day #${game.dayNumber} — ${game.solved ? `found in ${game.day.guesses.length}` : "not found"}`}
+        shareLabel={shareLabel}
         shared={game.shared}
         stats={game.stats}
       />
       {dev ? (
         <DevDrawer
+          boardLine={boardLine}
           game={game}
           onHowTo={() => setHowToOpen(true)}
           onStats={() => setStatsOpen(true)}
-          promptId={today.prompt.id}
-          promptLabel={today.prompt.label}
         />
       ) : null}
     </div>

@@ -11,7 +11,9 @@ export const Prompt = Schema.Struct({
 export type Prompt = typeof Prompt.Type
 
 /**
- * 14 concrete, region-free, single-thing prompts, rotated by UTC date.
+ * 30 concrete, region-free, single-thing prompts, dealt as fixed triples
+ * by UTC date. The bank stays a multiple of three so every day holds a
+ * full triple and no prompt repeats within a cycle.
  * Clues never name the thing; they sharpen as the temperature rises.
  */
 export const PROMPTS: ReadonlyArray<Prompt> = [
@@ -183,6 +185,198 @@ export const PROMPTS: ReadonlyArray<Prompt> = [
       blazing: "A traffic cone. One cone is enough.",
     },
   },
+  {
+    id: "book",
+    query: "a photo of a book",
+    label: "Book",
+    clues: {
+      frozen: "It speaks without a mouth.",
+      cool: "Pages bound together, no battery needed.",
+      warm: "Paper pages with a cover, text inside.",
+      hot: "A bound book with pages you flip.",
+      blazing: "A book. Cover and pages in frame.",
+    },
+  },
+  {
+    id: "motorcycle",
+    query: "a photo of a motorcycle",
+    label: "Motorcycle",
+    clues: {
+      frozen: "Two wheels and an engine that shouts.",
+      cool: "It parks between cars and roars away.",
+      warm: "Handlebars, exhaust, no pedals.",
+      hot: "A motorbike you ride, with a loud engine.",
+      blazing: "A motorcycle. Whole bike, both wheels in frame.",
+    },
+  },
+  {
+    id: "coffee-mug",
+    query: "a photo of a coffee mug",
+    label: "Coffee mug",
+    clues: {
+      frozen: "Something warm waits for you each morning.",
+      cool: "It has an ear but never listens.",
+      warm: "Ceramic, with a handle, holds something hot.",
+      hot: "Coffee or tea inside a handled cup.",
+      blazing: "A coffee mug. Cup and handle in frame.",
+    },
+  },
+  {
+    id: "chicken",
+    query: "a photo of a chicken",
+    label: "Chicken",
+    clues: {
+      frozen: "Something that woke you up before your alarm.",
+      cool: "Feathers, beak, loud opinions at dawn.",
+      warm: "Clucks, pecks the ground, lays eggs.",
+      hot: "A hen or rooster, feathers and beak.",
+      blazing: "A chicken. Whole bird in frame.",
+    },
+  },
+  {
+    id: "car-tire",
+    query: "a photo of a car tire",
+    label: "Car tire",
+    clues: {
+      frozen: "Black, round, and tired of the road.",
+      cool: "It touches the ground so the rest doesn't have to.",
+      warm: "Rubber ring with tread, around a metal wheel.",
+      hot: "A rubber tire on a car, tread visible.",
+      blazing: "A car tire. Tire and wheel in frame.",
+    },
+  },
+  {
+    id: "staircase",
+    query: "a photo of a staircase",
+    label: "Staircase",
+    clues: {
+      frozen: "You climb it without leaving the building.",
+      cool: "Steps going up, with a rail to hold.",
+      warm: "Concrete or wooden steps, indoors or out.",
+      hot: "A flight of stairs with steps and railing.",
+      blazing: "A staircase. Several steps in frame.",
+    },
+  },
+  {
+    id: "banana",
+    query: "a photo of a banana",
+    label: "Banana",
+    clues: {
+      frozen: "It comes in its own yellow wrapper.",
+      cool: "Peel it and the inside is white.",
+      warm: "Curved yellow fruit, in a bunch or single.",
+      hot: "A yellow banana, peel on or off.",
+      blazing: "A banana. Whole fruit in frame.",
+    },
+  },
+  {
+    id: "city-bus",
+    query: "a photo of a city bus",
+    label: "City bus",
+    clues: {
+      frozen: "Long, loud, and full of strangers.",
+      cool: "It stops even when you don't want it to.",
+      warm: "Big windows, doors that fold, route number up front.",
+      hot: "A large bus for city passengers.",
+      blazing: "A city bus. Whole side in frame.",
+    },
+  },
+  {
+    id: "umbrella",
+    query: "a photo of an umbrella",
+    label: "Umbrella",
+    clues: {
+      frozen: "It only works when the sky is broken.",
+      cool: "Folds up thin, opens into a roof.",
+      warm: "Fabric over ribs, with a handle to hold.",
+      hot: "Opens above your head against rain or sun.",
+      blazing: "An umbrella. Open or closed, show it whole.",
+    },
+  },
+  {
+    id: "soccer-ball",
+    query: "a photo of a soccer ball",
+    label: "Soccer ball",
+    clues: {
+      frozen: "Black and white patches, kicked around for fun.",
+      cool: "Round, stitched, rolls away from feet.",
+      warm: "Patchwork panels on a round ball.",
+      hot: "A ball kicked in a field game.",
+      blazing: "A soccer ball. Whole ball in frame.",
+    },
+  },
+  {
+    id: "traffic-light",
+    query: "a photo of a traffic light",
+    label: "Traffic light",
+    clues: {
+      frozen: "Red means stop even when nobody is there.",
+      cool: "It hangs over the road changing its mind.",
+      warm: "Red, yellow, green stacked vertically.",
+      hot: "Signals for cars at an intersection.",
+      blazing: "A traffic light. All three lamps in frame.",
+    },
+  },
+  {
+    id: "backpack",
+    query: "a photo of a backpack",
+    label: "Backpack",
+    clues: {
+      frozen: "It carries your day on your shoulders.",
+      cool: "Two straps, one main pocket, zippers.",
+      warm: "Fabric bag worn on the back, for school or travel.",
+      hot: "Straps and zipped compartments on your back.",
+      blazing: "A backpack. Whole bag with straps in frame.",
+    },
+  },
+  {
+    id: "trash-bin",
+    query: "a photo of a trash bin",
+    label: "Trash bin",
+    clues: {
+      frozen: "Everything you throw away lands here.",
+      cool: "Plastic or metal, with a lid, on the street.",
+      warm: "Cylinder that holds bags of rubbish.",
+      hot: "A bin for garbage, indoors or on a sidewalk.",
+      blazing: "A trash bin. Whole bin in frame.",
+    },
+  },
+  {
+    id: "front-door",
+    query: "a photo of a front door",
+    label: "Front door",
+    clues: {
+      frozen: "Everyone knocks here first.",
+      cool: "Wood or metal, with a handle and a lock.",
+      warm: "The main entrance to a house or flat.",
+      hot: "A door you enter through, handle and frame.",
+      blazing: "A front door. Whole door in frame.",
+    },
+  },
+  {
+    id: "helmet",
+    query: "a photo of a motorcycle helmet",
+    label: "Motorcycle helmet",
+    clues: {
+      frozen: "Hard shell for a soft head.",
+      cool: "Visor in front, strap under the chin.",
+      warm: "Round shell that protects a rider's skull.",
+      hot: "Worn by motorbike riders, visor and shell.",
+      blazing: "A motorcycle helmet. Whole helmet in frame.",
+    },
+  },
+  {
+    id: "shoes",
+    query: "a photo of a pair of shoes",
+    label: "Pair of shoes",
+    clues: {
+      frozen: "They go out more than you do.",
+      cool: "Laces or straps, soles worn thin.",
+      warm: "Two matching shoes, side by side.",
+      hot: "Footwear with soles and laces.",
+      blazing: "A pair of shoes. Both shoes in frame.",
+    },
+  },
 ]
 
 /** UTC midnight day number for a date (days since Unix epoch). */
@@ -207,23 +401,39 @@ export function shareDayNumber(date: Date): number {
   return utcDayNumber(date) - FIRST_DAY_NUMBER + 1
 }
 
-/** Prompt index for a date: stable worldwide, wraps the list. */
-export function promptIndexFor(date: Date): number {
+/** Prompts dealt per day. Fixed triples, never a partial set. */
+export const TRIPLE_SIZE = 3
+
+/**
+ * Daily triple for a date: three consecutive bank entries, stable
+ * worldwide, cycling every bank-length / 3 days. Adjacent days never
+ * share a prompt: day N takes entries 3N..3N+2 modulo the bank.
+ *
+ * @example
+ * ```ts
+ * tripleFor(new Date("2026-10-09T12:00:00Z")).prompts.map((p) => p.id)
+ * // ["exit-sign", "wall-clock", "bicycle"]
+ * ```
+ */
+export function tripleFor(date: Date): {
+  readonly dateKey: string
+  readonly prompts: readonly [Prompt, Prompt, Prompt]
+} {
   const count = PROMPTS.length
   const first = PROMPTS[0]
-  if (count === 0 || first === undefined) {
-    throw new Error("no prompts configured")
+  if (count === 0 || first === undefined || count % TRIPLE_SIZE !== 0) {
+    throw new Error("prompt bank must hold a multiple of three prompts")
   }
-  return (((utcDayNumber(date) - FIRST_DAY_NUMBER) % count) + count) % count
-}
-
-/** The prompt (and UTC date key) for a date. */
-export function promptFor(date: Date): { readonly dateKey: string; readonly prompt: Prompt } {
-  const prompt = PROMPTS[promptIndexFor(date)]
-  if (prompt === undefined) {
-    throw new Error("no prompts configured")
+  const triples = count / TRIPLE_SIZE
+  const dayDiff = utcDayNumber(date) - FIRST_DAY_NUMBER
+  const triple = (((dayDiff % triples) + triples) % triples) * TRIPLE_SIZE
+  const a = PROMPTS[triple]
+  const b = PROMPTS[triple + 1]
+  const c = PROMPTS[triple + 2]
+  if (a === undefined || b === undefined || c === undefined) {
+    throw new Error("prompt bank misaligned")
   }
-  return { dateKey: date.toISOString().slice(0, 10), prompt }
+  return { dateKey: date.toISOString().slice(0, 10), prompts: [a, b, c] }
 }
 
 /**

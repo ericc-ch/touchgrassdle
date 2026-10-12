@@ -11,9 +11,13 @@ test("first visit shows How to Play, Play starts the game and persists", async (
   await expect(start).toBeEnabled()
   await start.click()
   await expect(dialog).toBeHidden()
+  await page
+    .getByRole("button", { name: /^Choose / })
+    .first()
+    .click()
   await expect(page.getByRole("button", { name: /Take photo \(6 left\)/ })).toBeVisible()
 
-  const seen = await page.evaluate(() => window.localStorage.getItem("snapdle:v1:seenHowTo"))
+  const seen = await page.evaluate(() => window.localStorage.getItem("snapdle:v2:seenHowTo"))
   expect(seen).toBe("1")
 
   // Reload stays in the game; the ? button reopens the rules.

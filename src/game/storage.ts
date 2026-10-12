@@ -13,7 +13,7 @@ export const StoredDay = Schema.Struct({
 export type StoredDay = typeof StoredDay.Type
 
 /** Storage schema version. Bump when stored shapes change. */
-export const STORAGE_VERSION = "v1"
+export const STORAGE_VERSION = "v2"
 
 const keyFor = (dateKey: string): string => `snapdle:${STORAGE_VERSION}:day:${dateKey}`
 const seenHowToKey = `snapdle:${STORAGE_VERSION}:seenHowTo`

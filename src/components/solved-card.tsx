@@ -3,22 +3,18 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 export interface SolvedCardProps {
-  readonly label: string
-  readonly guessesUsed: number
-  readonly best: number
-  readonly failed: boolean
+  readonly title: string
+  readonly description: string
   readonly countdown: string
   readonly shared: boolean
   readonly onShare: () => void
   readonly onStats: () => void
 }
 
-/** Reveal + share + countdown once the day ends (found or out of photos). */
+/** Reveal + share + countdown once the day ends (found or every prompt dead). */
 export function SolvedCard({
-  label,
-  guessesUsed,
-  best,
-  failed,
+  title,
+  description,
   countdown,
   shared,
   onShare,
@@ -27,12 +23,8 @@ export function SolvedCard({
   return (
     <Card className="w-full border-primary/40">
       <CardHeader>
-        <CardTitle>{failed ? "Out of photos" : "Found it!"}</CardTitle>
-        <CardDescription>
-          {failed
-            ? `Today's subject was: ${label}`
-            : `It was ${label} — found in ${guessesUsed} ${guessesUsed === 1 ? "photo" : "photos"} (best ${best}%).`}
-        </CardDescription>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <div className="flex gap-2">
