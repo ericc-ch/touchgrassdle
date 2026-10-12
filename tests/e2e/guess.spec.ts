@@ -5,12 +5,12 @@ import { gotoStub, pixelPngPath } from "./helpers.ts"
 // so cosine is 0 and the fitted logistic maps it to exactly 0.
 test("capture scores a 0% guess and it survives reload", async ({ page }) => {
   await gotoStub(page, "stub")
-  await expect(page.getByRole("button", { name: /Take photo \(6 left\)/ })).toBeVisible()
+  await expect(page.getByRole("button", { name: /Take photo \(6 guesses left\)/ })).toBeVisible()
 
   await page.locator('input[type="file"]').setInputFiles(pixelPngPath())
   const card = page.locator("li", { hasText: "0% close" }).first()
   await expect(card).toBeVisible()
-  await expect(page.getByRole("button", { name: /Take photo \(5 left\)/ })).toBeVisible()
+  await expect(page.getByRole("button", { name: /Take photo \(5 guesses left\)/ })).toBeVisible()
 
   const keys = await page.evaluate(() => Object.keys(window.localStorage))
   expect(keys.some((key) => key.startsWith("snapdle:v2:day:"))).toBe(true)

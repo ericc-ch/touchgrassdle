@@ -4,7 +4,7 @@ import { gotoStub, pixelPngPath } from "./helpers.ts"
 test("solving shows reveal, share card, stats, and stays solved", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"])
   await gotoStub(page, "solve")
-  await expect(page.getByRole("button", { name: /Take photo \(6 left\)/ })).toBeVisible()
+  await expect(page.getByRole("button", { name: /Take photo \(6 guesses left\)/ })).toBeVisible()
 
   await page.locator('input[type="file"]').setInputFiles(pixelPngPath())
   await expect(page.getByText("Found it!")).toBeVisible()

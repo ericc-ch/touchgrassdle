@@ -8,9 +8,16 @@ async function burnCurrentObject(page: Page): Promise<void> {
   }
 }
 
+async function dismissStats(page: Page): Promise<void> {
+  const stats = page.getByRole("dialog")
+  await expect(stats).toBeVisible()
+  await stats.getByRole("button", { name: "Close", exact: true }).first().click()
+  await expect(stats).toBeHidden({ timeout: 10_000 })
+}
+
 test("day opens on object 1 with a position indicator", async ({ page }) => {
   await gotoStub(page, "stub")
-  await expect(page.getByRole("button", { name: /Take photo \(6 left\)/ })).toBeVisible()
+  await expect(page.getByRole("button", { name: /Take photo \(6 guesses left\)/ })).toBeVisible()
   await expect(page.getByText("Starting hint")).toBeVisible()
   await expect(
     page.getByRole("button", { name: "Try another object? (1/3)", exact: true }),
@@ -20,7 +27,7 @@ test("day opens on object 1 with a position indicator", async ({ page }) => {
 test("switch advances to object 2 with a fresh 6", async ({ page }) => {
   await gotoStub(page, "stub")
   await page.locator('input[type="file"]').setInputFiles(pixelPngPath())
-  await expect(page.getByRole("button", { name: /Take photo \(5 left\)/ })).toBeVisible()
+  await expect(page.getByRole("button", { name: /Take photo \(5 guesses left\)/ })).toBeVisible()
 
   // First tap only arms the confirm; the run is untouched.
   await page.getByRole("button", { name: /Try another object\? \(1\/3\)/ }).click()
@@ -29,7 +36,7 @@ test("switch advances to object 2 with a fresh 6", async ({ page }) => {
 
   // Second tap clears the run and opens object 2.
   await page.getByRole("button", { name: "Tap again to confirm" }).click()
-  await expect(page.getByRole("button", { name: /Take photo \(6 left\)/ })).toBeVisible()
+  await expect(page.getByRole("button", { name: /Take photo \(6 guesses left\)/ })).toBeVisible()
   await expect(
     page.getByRole("button", { name: "Try another object? (2/3)", exact: true }),
   ).toBeVisible()
@@ -42,13 +49,23 @@ test("failing all three ends the day without naming objects early", async ({ pag
 
   await burnCurrentObject(page)
   await expect(page.getByText(/Out of photos on /)).toBeVisible()
+  // A burned run opens stats, like the day end. The open dialog hides the
+  // board from role queries, so dismiss it before asserting the board.
+  const failedStats = page.getByRole("dialog")
+  await expect(failedStats).toBeVisible()
+  await expect(failedStats.getByText("Played")).toBeVisible()
+  await dismissStats(page)
+  await expect(page.getByText("0 guesses left")).toBeVisible()
+  await expect(page.getByRole("button", { name: /Try another object\? \(1\/3\)/ })).toBeDisabled()
   await page.getByRole("button", { name: "Continue to object 2", exact: true }).click()
-  await expect(page.getByRole("button", { name: /Take photo \(6 left\)/ })).toBeVisible()
+  await expect(page.getByRole("button", { name: /Take photo \(6 guesses left\)/ })).toBeVisible()
 
   await burnCurrentObject(page)
+  await dismissStats(page)
   await page.getByRole("button", { name: "Continue to object 3", exact: true }).click()
 
   await burnCurrentObject(page)
+  await dismissStats(page)
   await expect(page.getByText("Out of photos")).toBeVisible()
   const reveal = await page.getByText(/Today's objects: /).innerText()
   const objects = reveal.replace("Today's objects: ", "").replace(/\.$/, "").split(", ")
@@ -67,7 +84,7 @@ test("solving after a switch names both objects in the share card", async ({ pag
   await page.getByRole("button", { name: "Tap again to confirm" }).click()
 
   await page.goto(`${page.url().split("?")[0]}?e2eScorer=solve`)
-  await expect(page.getByRole("button", { name: /Take photo \(6 left\)/ })).toBeVisible()
+  await expect(page.getByRole("button", { name: /Take photo \(6 guesses left\)/ })).toBeVisible()
   await page.locator('input[type="file"]').setInputFiles(pixelPngPath())
   await expect(page.getByText("Found it!")).toBeVisible()
 

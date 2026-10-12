@@ -7,19 +7,16 @@ import {
   appName,
   continueAction,
   dayHeading,
-  dayOverStatus,
   failedDescription,
   failedRunBody,
   foundDescription,
   foundStatus,
   foundTitle,
+  guessesLeftStatus,
   howToPlayAction,
   navLabel,
   outOfPhotosHeading,
-  outOfPhotosStatus,
   outOfPhotosTitle,
-  photosLeftStatus,
-  pickObjectStatus,
   startingHintHeading,
   statsShareLabel,
   viewStatsAction,
@@ -64,6 +61,16 @@ export function GameScreen() {
       setStatsOpen(true)
     }
   }
+  // A burned run opens stats too, like the day end. Closing it leaves the
+  // run and its continue button on the board.
+  const [wasFailedOut, setWasFailedOut] = useState(false)
+  const failedOut = game.status === "ready" && game.failedCurrent && !game.over
+  if (failedOut !== wasFailedOut) {
+    setWasFailedOut(failedOut)
+    if (failedOut) {
+      setStatsOpen(true)
+    }
+  }
 
   const ready = game.status === "ready"
   const failed = game.status === "model-error"
@@ -97,14 +104,10 @@ export function GameScreen() {
   const statusLine = game.solved
     ? foundStatus(bestScore(game.day))
     : game.over
-      ? dayOverStatus
-      : game.failedCurrent
-        ? outOfPhotosStatus
-        : game.chosen === null
-          ? pickObjectStatus
-          : photosLeftStatus(game.remaining)
+      ? guessesLeftStatus(0)
+      : guessesLeftStatus(game.remaining)
 
-  const showSwitch = game.open && game.chosen !== null
+  const showLink = game.chosen !== null
   const solvedDescription =
     choiceLabel === null
       ? ""
@@ -114,10 +117,13 @@ export function GameScreen() {
           best: bestScore(game.day),
           skipped: gaveUpLabels,
         })
-  const shareLabel =
-    game.solved && choiceLabel !== null
-      ? statsShareLabel(game.dayNumber, choiceLabel, game.day.guesses.length)
-      : statsShareLabel(game.dayNumber, null, 0)
+  const shareLabel = statsShareLabel({
+    dayNumber: game.dayNumber,
+    solvedLabel: game.solved ? choiceLabel : null,
+    guessesUsed: game.day.guesses.length,
+    over: game.over,
+    position,
+  })
 
   const boardLine =
     game.chosen === null
@@ -156,10 +162,11 @@ export function GameScreen() {
             <h2 className="text-sm font-semibold">{dayHeading(game.dayNumber)}</h2>
             <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <span>{statusLine}</span>
-              {showSwitch ? (
+              {showLink ? (
                 <>
                   <span aria-hidden="true">·</span>
                   <GiveUpButton
+                    disabled={!game.open}
                     key={game.day.choiceId}
                     onGiveUp={game.advance}
                     position={position}

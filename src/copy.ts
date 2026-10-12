@@ -18,11 +18,8 @@ export function dayHeading(dayNumber: number): string {
 export function foundStatus(best: number): string {
   return `found · best ${best}%`
 }
-export const dayOverStatus = "day over"
-export const outOfPhotosStatus = "out of photos"
-export const pickObjectStatus = "pick an object"
-export function photosLeftStatus(remaining: number): string {
-  return `${remaining} photos left`
+export function guessesLeftStatus(remaining: number): string {
+  return remaining === 1 ? "1 guess left" : `${remaining} guesses left`
 }
 
 /** Object picker. */
@@ -77,14 +74,21 @@ export function foundDescription(input: FoundDescriptionInput): string {
 export function failedDescription(labels: ReadonlyArray<string>): string {
   return `Today's objects: ${labels.join(", ")}.`
 }
-export function statsShareLabel(
-  dayNumber: number,
-  solvedLabel: string | null,
-  guessesUsed: number,
-): string {
-  return solvedLabel === null
-    ? `Day #${dayNumber}, not found`
-    : `Day #${dayNumber}, ${solvedLabel} found in ${guessesUsed}`
+export interface StatsShareLabelInput {
+  readonly dayNumber: number
+  readonly solvedLabel: string | null
+  readonly guessesUsed: number
+  readonly over: boolean
+  readonly position: number
+}
+export function statsShareLabel(input: StatsShareLabelInput): string {
+  if (input.solvedLabel !== null) {
+    return `Day #${input.dayNumber}, ${input.solvedLabel} found in ${input.guessesUsed}`
+  }
+  if (input.over) {
+    return `Day #${input.dayNumber}, not found`
+  }
+  return `Day #${input.dayNumber}, object ${input.position} missed`
 }
 
 /** Share buttons. */
@@ -96,7 +100,7 @@ export const checkingPhotoAction = "Checking photo…"
 export const noPhotosAction = "No photos left"
 export const captureWaitingAction = "Loading the photo scorer…"
 export function takePhotoAction(remaining: number): string {
-  return `Take photo (${remaining} left)`
+  return `Take photo (${remaining} guesses left)`
 }
 
 /** Guess list. */
@@ -148,7 +152,7 @@ export const wonFact = "Won"
 export const winPercentFact = "Win %"
 export const streakFact = "Streak"
 export const maxStreakFact = "Max"
-export const histogramHeading = "Photos to solve"
+export const histogramHeading = "Guesses to solve"
 export const nextDayHeading = "NEXT DAY"
 
 /** Scorer status card. */

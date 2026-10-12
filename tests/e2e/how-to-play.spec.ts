@@ -11,7 +11,7 @@ test("first visit shows How to Play, Play starts the game and persists", async (
   await expect(start).toBeEnabled()
   await start.click()
   await expect(dialog).toBeHidden()
-  await expect(page.getByRole("button", { name: /Take photo \(6 left\)/ })).toBeVisible()
+  await expect(page.getByRole("button", { name: /Take photo \(6 guesses left\)/ })).toBeVisible()
 
   const seen = await page.evaluate(() => window.localStorage.getItem("snapdle:v2:seenHowTo"))
   expect(seen).toBe("1")

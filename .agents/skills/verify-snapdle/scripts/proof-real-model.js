@@ -27,7 +27,7 @@ await state.page.goto(ORIGIN, { waitUntil: "domcontentloaded" });
 const start = state.page.getByRole("button", { name: "Start playing", exact: true });
 await start.waitFor({ timeout: 600_000 });
 await start.click();
-await state.page.getByRole("button", { name: /Take photo \(\d left\)/ }).waitFor({ timeout: 60_000 });
+await state.page.getByRole("button", { name: /Take photo \(\d guesses left\)/ }).waitFor({ timeout: 60_000 });
 console.log("READY " + ORIGIN);
 await state.page.locator('input[type="file"]').setInputFiles(MATCH_PHOTO);
 await state.page.locator("main li").first().waitFor({ timeout: 180_000 });

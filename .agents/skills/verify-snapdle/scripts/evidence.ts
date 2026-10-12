@@ -34,6 +34,16 @@ async function tapThemeSwitch(page: Page, times: number): Promise<void> {
   }
 }
 
+async function dismissStatsDialog(page: Page): Promise<void> {
+  await page.getByRole("dialog").waitFor({ timeout: 10_000 })
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Close", exact: true })
+    .first()
+    .click()
+  await page.getByRole("dialog").waitFor({ state: "detached", timeout: 10_000 })
+}
+
 async function main(): Promise<void> {
   mkdirSync(OUT, { recursive: true })
   const pixel = join(tmpdir(), "snapdle-pixel.png")
@@ -59,7 +69,7 @@ async function main(): Promise<void> {
     await stubStart.waitFor({ timeout: 30_000 })
     await stubStart.click()
     await page.getByRole("dialog").waitFor({ state: "detached", timeout: 30_000 })
-    await page.getByRole("button", { name: /Take photo \(6 left\)/ }).waitFor({ timeout: 30_000 })
+    await page.getByRole("button", { name: /Take photo \(6 guesses left\)/ }).waitFor({ timeout: 30_000 })
     await page.locator('input[type="file"]').setInputFiles(pixel)
     await page.locator("li", { hasText: "0% close" }).first().waitFor({ timeout: 30_000 })
     transcript["stubGuess"] = await page.locator("li", { hasText: "0% close" }).first().innerText()
@@ -76,9 +86,17 @@ async function main(): Promise<void> {
     }
     await page.getByText(/Out of photos on /).waitFor({ timeout: 30_000 })
     transcript["failedOne"] = await page.getByText(/Out of photos on /).innerText()
+    await page.getByRole("dialog").waitFor({ timeout: 10_000 })
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Close", exact: true })
+      .first()
+      .click()
+    await page.getByRole("dialog").waitFor({ state: "detached", timeout: 10_000 })
     await page.screenshot({ path: join(OUT, "failed-one.png"), scale: "css" })
 
     // Burn objects 2 and 3: the day ends with every object named.
+    // Each burned run opens stats first; dismiss it to reach the board.
     await page.getByRole("button", { name: "Continue to object 2", exact: true }).click()
     for (let shot = 1; shot <= 6; shot++) {
       await page.locator('input[type="file"]').setInputFiles(pixel)
@@ -87,6 +105,7 @@ async function main(): Promise<void> {
         .first()
         .waitFor({ timeout: 30_000 })
     }
+    await dismissStatsDialog(page)
     await page.getByRole("button", { name: "Continue to object 3", exact: true }).click()
     for (let shot = 1; shot <= 6; shot++) {
       await page.locator('input[type="file"]').setInputFiles(pixel)
@@ -107,7 +126,7 @@ async function main(): Promise<void> {
     const solveStart = page.getByRole("button", { name: "Start playing", exact: true })
     await solveStart.waitFor({ timeout: 30_000 })
     await solveStart.click()
-    await page.getByRole("button", { name: /Take photo \(6 left\)/ }).waitFor({ timeout: 30_000 })
+    await page.getByRole("button", { name: /Take photo \(6 guesses left\)/ }).waitFor({ timeout: 30_000 })
     await page.locator('input[type="file"]').setInputFiles(pixel)
     await page.getByText("Found it!").waitFor({ timeout: 30_000 })
     const dialog = page.getByRole("dialog")

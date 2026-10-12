@@ -13,7 +13,7 @@ test("boot shows the empty board with no console errors", async ({ page }) => {
 
   await expect(page.getByRole("heading", { name: "Snapdle" })).toBeVisible()
   await expect(page.getByRole("heading", { name: /Day #\d+/ })).toBeVisible()
-  await expect(page.getByRole("button", { name: /Take photo \(6 left\)/ })).toBeVisible()
+  await expect(page.getByRole("button", { name: /Take photo \(6 guesses left\)/ })).toBeVisible()
   await expect(page.getByText("Starting hint")).toBeVisible()
   await expect(
     page.getByRole("button", { name: "Try another object? (1/3)", exact: true }),
