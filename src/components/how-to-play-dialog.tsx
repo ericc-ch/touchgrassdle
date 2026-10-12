@@ -51,7 +51,10 @@ export function HowToPlayDialog({
           </DialogDescription>
         </DialogHeader>
         <ol className="flex list-decimal flex-col gap-2 pl-5">
-          <li>Pick one of 3 subjects. Everyone gets the same three.</li>
+          <li>
+            Pick one of 3 hidden subjects. You get a hint, not the name. Everyone gets the same
+            three.
+          </li>
           <li>
             Take up to 6 photos on your pick. Each photo gets a closeness score, 0 to 100%. Higher
             means closer. You get a hint with each score.
@@ -61,10 +64,10 @@ export function HowToPlayDialog({
             on a server.
           </li>
           <li>
-            Stuck? Give up your pick and try another subject with a fresh 6. A gave-up subject stays
-            dead for the day.
+            Stuck? Hit Try another subject? for a fresh 6 on a new pick. The old subject stays dead
+            for the day, and its name is revealed.
           </li>
-          <li>Share your scores with friends.</li>
+          <li>Share your scores with friends. Every subject is named in the end-of-day reveal.</li>
         </ol>
         {failed ? (
           <div className="flex flex-col gap-2 border border-destructive/40 p-3">
