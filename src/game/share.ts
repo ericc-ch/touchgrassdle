@@ -36,7 +36,7 @@ export interface ShareLabels {
  * @example
  * ```ts
  * formatShareCard(12, day, { choiceLabel: "Bicycle", gaveUpLabels: ["Banana"] })
- * // "Snapdle #12 (Bicycle) 2/6 · best 92 · gave up: Banana\n🟨🟥⬛⬛⬛⬛"
+ * // "Snapdle #12 (Bicycle) 2/6 · best 92 · skipped: Banana\n🟨🟥⬛⬛⬛⬛"
  * ```
  */
 export function formatShareCard(dayNumber: number, day: DayState, labels: ShareLabels): string {
@@ -44,7 +44,7 @@ export function formatShareCard(dayNumber: number, day: DayState, labels: ShareL
   const tally = solved ? `${day.guesses.length}` : "X"
   const subject = labels.choiceLabel === null ? "" : ` (${labels.choiceLabel})`
   const gaveUp =
-    labels.gaveUpLabels.length === 0 ? "" : ` · gave up: ${labels.gaveUpLabels.join(", ")}`
+    labels.gaveUpLabels.length === 0 ? "" : ` · skipped: ${labels.gaveUpLabels.join(", ")}`
   const squares = day.guesses.map((guess) => squareFor(guess.temperature)).join("")
   const padding = EMPTY_SQUARE.repeat(MAX_GUESSES - day.guesses.length)
   return `Snapdle #${dayNumber}${subject} ${tally}/6 · best ${bestScore(day)}${gaveUp}\n${squares}${padding}`

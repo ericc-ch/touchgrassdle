@@ -31,7 +31,7 @@ describe("formatShareCard", () => {
     day = choosePrompt(day, "bicycle")
     day = recordGuess(day, { score: 92, temperature: "blazing", takenAt: 0 })
     expect(formatShareCard(12, day, { choiceLabel: "Bicycle", gaveUpLabels: ["Banana"] })).toBe(
-      "Snapdle #12 (Bicycle) 1/6 · best 92 · gave up: Banana\n🟥⬛⬛⬛⬛⬛",
+      "Snapdle #12 (Bicycle) 1/6 · best 92 · skipped: Banana\n🟥⬛⬛⬛⬛⬛",
     )
   })
 
@@ -47,6 +47,6 @@ describe("formatShareCard", () => {
         choiceLabel: null,
         gaveUpLabels: ["Banana", "Bicycle", "Motorcycle"],
       }),
-    ).toBe("Snapdle #12 X/6 · best 0 · gave up: Banana, Bicycle, Motorcycle\n⬛⬛⬛⬛⬛⬛")
+    ).toBe("Snapdle #12 X/6 · best 0 · skipped: Banana, Bicycle, Motorcycle\n⬛⬛⬛⬛⬛⬛")
   })
 })

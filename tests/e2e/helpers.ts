@@ -24,7 +24,7 @@ export function pixelPngPath(): string {
  * `fail` shows photo-scorer-unavailable. No model download, fully deterministic.
  * Dismisses the first-visit How to Play dialog, except in `fail` mode
  * where Play never enables (the dialog itself carries the Retry path).
- * Then picks the first of the three daily subjects, unless `pick` is false.
+ * Then picks the first of the three daily objects, unless `pick` is false.
  */
 export async function gotoStub(
   page: Page,

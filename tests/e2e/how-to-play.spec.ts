@@ -46,7 +46,7 @@ test.describe("photo scorer explainer", () => {
     await expect(dialog).toBeVisible()
 
     const explainer = page.getByText(
-      "Compares your photo to today's hidden subject on this device, 0 to 100%.",
+      "Compares your photo to today's hidden object on this device, 0 to 100%.",
     )
     await expect(explainer).toBeHidden()
 
@@ -65,7 +65,7 @@ test.describe("photo scorer explainer", () => {
     await expect(dialog).toBeVisible()
 
     const explainer = page.getByText(
-      "Compares your photo to today's hidden subject on this device, 0 to 100%.",
+      "Compares your photo to today's hidden object on this device, 0 to 100%.",
     )
     await expect(explainer).toBeHidden()
 

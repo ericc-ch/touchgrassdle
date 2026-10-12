@@ -33,7 +33,7 @@ export function ScorerTerm() {
         <PopoverHeader className="text-xs">
           <PopoverTitle>Photo scorer</PopoverTitle>
           <PopoverDescription>
-            Compares your photo to today&apos;s hidden subject on this device, 0 to 100%.
+            Compares your photo to today&apos;s hidden object on this device, 0 to 100%.
           </PopoverDescription>
         </PopoverHeader>
       </PopoverContent>

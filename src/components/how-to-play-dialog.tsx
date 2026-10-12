@@ -47,13 +47,12 @@ export function HowToPlayDialog({
         <DialogHeader>
           <DialogTitle>How to play</DialogTitle>
           <DialogDescription>
-            Pick one of three hidden subjects each day. Take photos outside to match it.
+            Pick 1 of 3 hidden objects each day. Take photos outside to match the object.
           </DialogDescription>
         </DialogHeader>
         <ol className="flex list-decimal flex-col gap-2 pl-5">
           <li>
-            Pick one of 3 hidden subjects. You get a hint, not the name. Everyone gets the same
-            three.
+            Pick 1 of 3 hidden objects. You get a hint, not the name. Everyone gets the same three.
           </li>
           <li>
             Take up to 6 photos on your pick. Each photo gets a closeness score, 0 to 100%. Higher
@@ -64,10 +63,10 @@ export function HowToPlayDialog({
             on a server.
           </li>
           <li>
-            Stuck? Hit Try another subject? for a fresh 6 on a new pick. The old subject stays dead
-            for the day, and its name is revealed.
+            Stuck? Tap Try another object? You get 6 new photos on a new pick. The old object stays
+            dead for the day. The picker shows its name.
           </li>
-          <li>Share your scores with friends. Every subject is named in the end-of-day reveal.</li>
+          <li>Share your scores with friends. The reveal names every object.</li>
         </ol>
         {failed ? (
           <div className="flex flex-col gap-2 border border-destructive/40 p-3">

@@ -74,16 +74,19 @@ export function GameScreen() {
       : game.failedCurrent
         ? "out of photos"
         : game.chosen === null
-          ? "pick a subject"
+          ? "pick an object"
           : `${game.remaining} photos left`
 
+  const showSwitch = game.open && game.chosen !== null
+
   const solvedTitle = "Found it!"
+  const photoWord = game.day.guesses.length === 1 ? "photo" : "photos"
   const solvedDescription =
     choiceLabel === null
       ? ""
-      : `It was ${choiceLabel} — found in ${game.day.guesses.length} ${game.day.guesses.length === 1 ? "photo" : "photos"} (best ${bestScore(game.day)}%).` +
-        (gaveUpLabels.length === 0 ? "" : ` Gave up: ${gaveUpLabels.join(", ")}.`)
-  const failedDescription = `Today's subjects were: ${today.prompts.map((prompt) => prompt.label).join(", ")}.`
+      : `It was ${choiceLabel}. Found in ${game.day.guesses.length} ${photoWord}. Best ${bestScore(game.day)}%.` +
+        (gaveUpLabels.length === 0 ? "" : ` Skipped: ${gaveUpLabels.join(", ")}.`)
+  const failedDescription = `Today's objects: ${today.prompts.map((prompt) => prompt.label).join(", ")}.`
   const shareLabel =
     game.solved && choiceLabel !== null
       ? `Day #${game.dayNumber} — ${choiceLabel} found in ${game.day.guesses.length}`
@@ -124,7 +127,15 @@ export function GameScreen() {
         <div className="mx-auto flex h-full w-full max-w-md flex-col gap-2 px-4 pt-3">
           <div className="flex shrink-0 items-center justify-between">
             <h2 className="text-sm font-semibold">Day #{game.dayNumber}</h2>
-            <span className="text-sm text-muted-foreground">{statusLine}</span>
+            <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <span>{statusLine}</span>
+              {showSwitch ? (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <GiveUpButton key={game.day.choiceId} onGiveUp={game.giveUpChoice} />
+                </>
+              ) : null}
+            </span>
           </div>
 
           {game.chosen === null || game.failedCurrent ? null : (
@@ -143,7 +154,7 @@ export function GameScreen() {
               <CardContent className="flex flex-col gap-0.5">
                 <span className="text-sm font-semibold">Out of photos on {choiceLabel}</span>
                 <p className="break-words text-sm whitespace-pre-wrap text-muted-foreground">
-                  That subject stays dead. Pick another below for a fresh 6.
+                  That object stays dead. Pick another object below. You get 6 new photos.
                 </p>
               </CardContent>
             </Card>
@@ -207,22 +218,13 @@ export function GameScreen() {
                 title={game.solved ? solvedTitle : "Out of photos"}
               />
             ) : game.failedCurrent || game.chosen === null ? null : (
-              <div className="flex w-full flex-col gap-2">
-                <CaptureButton
-                  disabled={!game.open}
-                  onFile={game.scorePhoto}
-                  remaining={game.remaining}
-                  scoring={game.scoring}
-                  waiting={game.open && !ready}
-                />
-                {choiceLabel === null ? null : (
-                  <GiveUpButton
-                    key={game.day.choiceId}
-                    label={choiceLabel}
-                    onGiveUp={game.giveUpChoice}
-                  />
-                )}
-              </div>
+              <CaptureButton
+                disabled={!game.open}
+                onFile={game.scorePhoto}
+                remaining={game.remaining}
+                scoring={game.scoring}
+                waiting={game.open && !ready}
+              />
             )}
           </div>
         </div>

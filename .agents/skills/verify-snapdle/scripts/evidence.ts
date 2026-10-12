@@ -59,7 +59,7 @@ async function main(): Promise<void> {
     await stubStart.waitFor({ timeout: 30_000 })
     await stubStart.click()
     await page.getByRole("dialog").waitFor({ state: "detached", timeout: 30_000 })
-    await page.getByText("Pick today's subject").waitFor({ timeout: 30_000 })
+    await page.getByText("Pick today's object").waitFor({ timeout: 30_000 })
     await page.screenshot({ path: join(OUT, "picker.png"), scale: "css" })
     await page.getByRole("button", { name: /^Choose/ }).first().click()
     await page.getByRole("button", { name: /Take photo \(6 left\)/ }).waitFor({ timeout: 30_000 })
@@ -104,7 +104,7 @@ async function main(): Promise<void> {
     await page.keyboard.press("Escape")
     await dialog.waitFor({ state: "detached", timeout: 10_000 })
     await devPanel.getByRole("button", { name: "Clear board" }).click()
-    await board.getByText("Pick today's subject").waitFor({ timeout: 10_000 })
+    await board.getByText("Pick today's object").waitFor({ timeout: 10_000 })
     await devPanel.getByRole("button", { name: "Error scorer status" }).click()
     await board.getByText("Photo scorer unavailable").waitFor({ timeout: 10_000 })
     transcript["devErrorStatus"] = "Photo scorer unavailable"

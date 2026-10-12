@@ -2,31 +2,37 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 
 export interface GiveUpButtonProps {
-  readonly label: string
   readonly onGiveUp: () => void
 }
 
 /**
- * Two-tap subject switch: the idle tap invites another pick, the armed
- * tap names the cost (this subject dies, its photos reset). The parent
- * keys on the choice id so arming resets whenever the pick changes.
+ * Two-tap object switch for the day header. The idle tap invites another
+ * pick. The armed tap confirms the cost without naming the object: names
+ * stay hidden until the reveal. The parent keys on the choice id so
+ * arming resets whenever the pick changes.
  */
-export function GiveUpButton({ label, onGiveUp }: GiveUpButtonProps) {
+export function GiveUpButton({ onGiveUp }: GiveUpButtonProps) {
   const [armed, setArmed] = useState(false)
   if (!armed) {
     return (
-      <Button aria-label="Try another subject?" onClick={() => setArmed(true)} variant="ghost">
-        Try another subject?
+      <Button
+        aria-label="Try another object?"
+        className="font-medium underline"
+        onClick={() => setArmed(true)}
+        variant="link"
+      >
+        Try another object?
       </Button>
     )
   }
   return (
     <Button
-      aria-label={`Confirm: end ${label} and reset photos`}
+      aria-label="Tap again to confirm. Photos reset."
+      className="font-medium text-destructive underline"
       onClick={onGiveUp}
-      variant="destructive"
+      variant="link"
     >
-      End {label} — photos reset
+      Tap again to confirm
     </Button>
   )
 }
