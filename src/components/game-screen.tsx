@@ -166,7 +166,8 @@ export function GameScreen() {
                 <>
                   <span aria-hidden="true">·</span>
                   <GiveUpButton
-                    disabled={!game.open}
+                    disabled={game.over || game.scoring}
+                    immediate={game.failedCurrent}
                     key={game.day.choiceId}
                     onGiveUp={game.advance}
                     position={position}

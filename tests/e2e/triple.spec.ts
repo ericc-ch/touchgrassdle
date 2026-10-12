@@ -56,9 +56,13 @@ test("failing all three ends the day without naming objects early", async ({ pag
   await expect(failedStats.getByText("Played")).toBeVisible()
   await dismissStats(page)
   await expect(page.getByText("0 guesses left")).toBeVisible()
-  await expect(page.getByRole("button", { name: /Try another object\? \(1\/3\)/ })).toBeDisabled()
-  await page.getByRole("button", { name: "Continue to object 2", exact: true }).click()
+  await expect(page.getByRole("button", { name: /Try another object\? \(1\/3\)/ })).toBeEnabled()
+  // One tap moves on from a dead run. No confirm.
+  await page.getByRole("button", { name: /Try another object\? \(1\/3\)/ }).click()
   await expect(page.getByRole("button", { name: /Take photo \(6 guesses left\)/ })).toBeVisible()
+  await expect(
+    page.getByRole("button", { name: "Try another object? (2/3)", exact: true }),
+  ).toBeVisible()
 
   await burnCurrentObject(page)
   await dismissStats(page)
@@ -78,14 +82,15 @@ test("failing all three ends the day without naming objects early", async ({ pag
 
 test("solving after a switch names both objects in the share card", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"])
-  await gotoStub(page, "stub")
+  await page.goto("/?e2eScorer=stub&dev=1", { waitUntil: "domcontentloaded" })
+  const start = page.getByRole("button", { name: "Start playing", exact: true })
+  await start.waitFor({ timeout: 15_000 })
+  await start.click()
 
   await page.getByRole("button", { name: /Try another object\? \(1\/3\)/ }).click()
   await page.getByRole("button", { name: "Tap again to confirm" }).click()
 
-  await page.goto(`${page.url().split("?")[0]}?e2eScorer=solve`)
-  await expect(page.getByRole("button", { name: /Take photo \(6 guesses left\)/ })).toBeVisible()
-  await page.locator('input[type="file"]').setInputFiles(pixelPngPath())
+  await page.getByLabel("Developer mode").getByRole("button", { name: "Solve now" }).click()
   await expect(page.getByText("Found it!")).toBeVisible()
 
   const reveal = await page.getByText(/It was .*\. Found in 1 photo/).innerText()
