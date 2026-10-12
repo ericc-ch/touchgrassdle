@@ -100,7 +100,7 @@ async function main(): Promise<void> {
     await devPanel.getByRole("button", { name: "Solve now" }).click()
     const board = page.locator("main")
     await board.getByText("Found it!").waitFor({ timeout: 10_000 })
-    transcript["devSolve"] = await board.getByText(/found in 1 photo/).innerText()
+    transcript["devSolve"] = await board.getByText(/Found in 1 photo/).innerText()
     await page.keyboard.press("Escape")
     await dialog.waitFor({ state: "detached", timeout: 10_000 })
     await devPanel.getByRole("button", { name: "Clear board" }).click()
