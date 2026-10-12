@@ -12,7 +12,7 @@ test("first visit shows How to Play, Play starts the game and persists", async (
   await start.click()
   await expect(dialog).toBeHidden()
   await page
-    .getByRole("button", { name: /^Choose / })
+    .getByRole("button", { name: /^Choose/ })
     .first()
     .click()
   await expect(page.getByRole("button", { name: /Take photo \(6 left\)/ })).toBeVisible()

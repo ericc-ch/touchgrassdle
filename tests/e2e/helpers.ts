@@ -42,7 +42,7 @@ export async function gotoStub(
     return
   }
   await page
-    .getByRole("button", { name: /^Choose / })
+    .getByRole("button", { name: /^Choose/ })
     .first()
     .click()
 }

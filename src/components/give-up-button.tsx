@@ -7,22 +7,26 @@ export interface GiveUpButtonProps {
 }
 
 /**
- * Two-tap give-up: the first tap arms a confirm state, the second tap
- * kills the prompt for the day and resets its photos. The parent keys
- * on the choice id so arming resets whenever the pick changes.
+ * Two-tap subject switch: the idle tap invites another pick, the armed
+ * tap names the cost (this subject dies, its photos reset). The parent
+ * keys on the choice id so arming resets whenever the pick changes.
  */
 export function GiveUpButton({ label, onGiveUp }: GiveUpButtonProps) {
   const [armed, setArmed] = useState(false)
   if (!armed) {
     return (
-      <Button aria-label={`Give up on ${label}`} onClick={() => setArmed(true)} variant="ghost">
-        Give up on {label}
+      <Button aria-label="Try another subject?" onClick={() => setArmed(true)} variant="ghost">
+        Try another subject?
       </Button>
     )
   }
   return (
-    <Button aria-label={`Confirm giving up on ${label}`} onClick={onGiveUp} variant="destructive">
-      Confirm give up — photos reset
+    <Button
+      aria-label={`Confirm: end ${label} and reset photos`}
+      onClick={onGiveUp}
+      variant="destructive"
+    >
+      End {label} — photos reset
     </Button>
   )
 }
