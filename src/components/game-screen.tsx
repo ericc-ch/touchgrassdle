@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { ChartColumn, CircleQuestionMark } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -88,7 +88,7 @@ export function GameScreen() {
     setHowToOpen(false)
   }
 
-  const today = tripleFor(new Date())
+  const today = useMemo(() => tripleFor(new Date()), [])
   const labelById = new Map(today.prompts.map((prompt) => [prompt.id, prompt.label] as const))
   const labelOf = (id: string): string => labelById.get(id) ?? id
   const gaveUpLabels = game.day.gaveUpIds.map(labelOf)
@@ -166,7 +166,7 @@ export function GameScreen() {
                 <>
                   <span aria-hidden="true">·</span>
                   <GiveUpButton
-                    disabled={game.over || game.scoring}
+                    disabled={game.over || game.scoring || !ready}
                     immediate={game.failedCurrent}
                     key={game.day.choiceId}
                     onGiveUp={game.advance}
@@ -202,7 +202,12 @@ export function GameScreen() {
 
           <div className="min-h-0 flex-1 overflow-y-auto">
             {game.chosen === null ? null : (
-              <GuessList day={game.day} prompt={game.chosen} thumbnails={game.thumbnails} />
+              <GuessList
+                day={game.day}
+                key={game.day.choiceId}
+                prompt={game.chosen}
+                thumbnails={game.thumbnails}
+              />
             )}
           </div>
 
@@ -229,7 +234,7 @@ export function GameScreen() {
           ) : null}
 
           <div className="shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-            {ended ? (
+            {game.over ? (
               <SolvedCard
                 countdown={countdown}
                 description={
@@ -242,7 +247,7 @@ export function GameScreen() {
                 shared={game.shared}
                 title={game.solved ? foundTitle : outOfPhotosTitle}
               />
-            ) : game.failedCurrent ? (
+            ) : game.failedCurrent && nextLive !== undefined ? (
               <Button className="w-full" onClick={game.advance} size="lg">
                 {continueAction(nextPosition)}
               </Button>

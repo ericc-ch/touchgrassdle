@@ -116,9 +116,10 @@ async function main(): Promise<void> {
     }
     await page.getByText("Out of photos").waitFor({ timeout: 30_000 })
     transcript["failedAll"] = await page.getByText(/Today's objects: /).innerText()
-    await page.keyboard.press("Escape")
-    await page.getByRole("dialog").waitFor({ state: "detached", timeout: 10_000 })
+    await dismissStatsDialog(page)
     await page.screenshot({ path: join(OUT, "failed-all.png"), scale: "css" })
+    await page.getByRole("button", { name: "Share score", exact: true }).click()
+    transcript["failedShare"] = await page.evaluate(() => window.navigator.clipboard.readText())
 
     await page.goto(`${ORIGIN}/?e2eScorer=solve`, { waitUntil: "domcontentloaded" })
     await page.evaluate(() => window.localStorage.clear())

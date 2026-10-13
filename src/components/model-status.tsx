@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import {
+  errorDetails,
   retryAction,
   scorerDownloadNote,
   scorerFailedNote,
@@ -26,7 +27,7 @@ export function ModelStatus({ fraction, failed, error, onRetry }: ModelStatusPro
           <CardTitle>{scorerUnavailableTitle}</CardTitle>
           <CardDescription>
             The <ScorerTerm /> {scorerFailedNote}
-            {error === null ? "" : ` (${error})`}
+            {error === null ? "" : errorDetails(error)}
           </CardDescription>
         </CardHeader>
         <CardContent>

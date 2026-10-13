@@ -129,7 +129,8 @@ export function recordGuess(day: DayState, input: RecordGuessInput): DayState {
  *
  * @example
  * ```ts
- * advance(newDay("2026-10-09", triple)) // choiceId "wall-clock"
+ * advance(newDay("2026-10-09", ["exit-sign", "wall-clock", "bicycle"]))
+ * // { choiceId: "wall-clock", guesses: [], ... }
  * ```
  */
 export function advance(day: DayState): DayState {

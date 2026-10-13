@@ -15,8 +15,8 @@ export interface GiveUpButtonProps {
  * Two-tap object switch for the day header. The idle tap invites another
  * pick. The armed tap confirms the cost without naming the object: names
  * stay hidden until the reveal. On a dead run the tap moves on at once.
- * The parent keys on the choice id so arming resets whenever the pick
- * changes. A disabled switch always shows idle.
+ * Arming resets when the pick changes (the parent keys on the choice
+ * id). A disabled switch shows idle but keeps its armed flag.
  */
 export function GiveUpButton({
   disabled,

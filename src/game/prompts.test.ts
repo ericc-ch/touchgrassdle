@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { clueForAttempt, FIRST_DAY_NUMBER, PROMPTS, shareDayNumber, tripleFor } from "./prompts.ts"
+import { clueForAttempt, PROMPTS, shareDayNumber, tripleFor } from "./prompts.ts"
 
 const day = (iso: string) => new Date(`${iso}T12:00:00Z`)
 const ids = (iso: string) => tripleFor(day(iso)).prompts.map((prompt) => prompt.id)
@@ -29,10 +29,6 @@ describe("rotation", () => {
 
   it("keys days by UTC date", () => {
     expect(tripleFor(day("2026-10-09")).dateKey).toBe("2026-10-09")
-  })
-
-  it("derives the first-day constant consistently", () => {
-    expect(FIRST_DAY_NUMBER).toBe(shareDayNumber(day("2026-10-09")) + FIRST_DAY_NUMBER - 1)
   })
 })
 

@@ -8,6 +8,8 @@ import {
 } from "@/components/ui/dialog"
 import { Progress } from "@/components/ui/progress"
 import {
+  checkConnectionNote,
+  errorDetails,
   howToPlayIntro,
   howToPlayRulePhotos,
   howToPlayRulePick,
@@ -56,7 +58,6 @@ export function HowToPlayDialog({
     : fraction === null
       ? loadingScorerAction
       : loadingScorerPercent(fraction)
-  const startLabel = ready ? startPlayingAction : loadingScorerAction
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
@@ -78,8 +79,8 @@ export function HowToPlayDialog({
           <div className="flex flex-col gap-2 border border-destructive/40 p-3">
             <p className="text-sm font-medium">{scorerFailedTitle}</p>
             <p className="text-sm text-muted-foreground">
-              Check your connection and select {retryAction}.
-              {error === null ? "" : ` Details: ${error}`}
+              {checkConnectionNote}
+              {error === null ? "" : errorDetails(error)}
             </p>
             <Button onClick={onRetry} variant="outline">
               {retryAction}
@@ -94,13 +95,7 @@ export function HowToPlayDialog({
           </div>
         )}
         {failed ? null : (
-          <Button
-            aria-label={startLabel}
-            className="w-full"
-            disabled={!ready}
-            onClick={onPlay}
-            size="lg"
-          >
+          <Button className="w-full" disabled={!ready} onClick={onPlay} size="lg">
             {playLabel}
           </Button>
         )}

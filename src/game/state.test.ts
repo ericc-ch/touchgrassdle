@@ -77,7 +77,26 @@ describe("day lifecycle", () => {
     expect(day.choiceId).toBe("wall-clock")
     expect(day.guesses).toEqual([])
     expect(day.gaveUpIds).toEqual([])
+    expect(day.deadIds).toEqual(["exit-sign"])
     expect(canGuess(day)).toBe(true)
+  })
+
+  it("ends the day after burning every object without quitting", () => {
+    let day = newDay("2026-10-09", triple)
+    for (let round = 0; round < 2; round++) {
+      for (let i = 0; i < 6; i++) {
+        day = recordGuess(day, guess(5))
+      }
+      day = advance(day)
+    }
+    for (let i = 0; i < 6; i++) {
+      day = recordGuess(day, guess(5))
+    }
+    expect(dayOver(day)).toBe(true)
+    expect(day.choiceId).toBe("bicycle")
+    expect(day.guesses).toHaveLength(6)
+    expect(day.deadIds).toEqual(["exit-sign", "wall-clock", "bicycle"])
+    expect(advance(day)).toBe(day)
   })
 
   it("ends the day once all three objects are dead", () => {

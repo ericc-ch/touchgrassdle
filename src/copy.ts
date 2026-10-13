@@ -1,8 +1,9 @@
 /**
  * Every user-facing string in one place, English only. Screens import
  * from here instead of inlining copy, so wording changes land in one
- * file. Params stay function args (no sentence stitching at call
- * sites) to keep a future i18n pass simple.
+ * file. Params stay function args to keep a future i18n pass simple.
+ * Interactive terms (the scorer explainer) stay components at call
+ * sites, with their surrounding sentence halves exported beside them.
  */
 
 /** App chrome. */
@@ -22,18 +23,6 @@ export function guessesLeftStatus(remaining: number): string {
   return remaining === 1 ? "1 guess left" : `${remaining} guesses left`
 }
 
-/** Object picker. */
-export const pickObjectHeading = "Pick today's object"
-export function objectTitle(index: number): string {
-  return `Object ${index + 1}`
-}
-export function chooseObjectLabel(index: number): string {
-  return `Choose object ${index + 1}`
-}
-export function deadObjectNote(label: string): string {
-  return `Out for today. It was ${label}.`
-}
-
 /** Starting hint card. */
 export const startingHintHeading = "Starting hint"
 
@@ -41,7 +30,6 @@ export const startingHintHeading = "Starting hint"
 export function switchIdleLabel(position: number, total: number): string {
   return `Try another object? (${position}/${total})`
 }
-export const switchIdleAction = "Try another object?"
 export const switchConfirmAction = "Tap again to confirm"
 export const switchConfirmHint = "Tap again to confirm. Photos reset."
 
@@ -50,7 +38,7 @@ export function outOfPhotosHeading(label: string): string {
   return `Out of photos on ${label}`
 }
 export const failedRunBody =
-  "That object stays dead. Pick another object below. You get 6 new photos."
+  "That object stays dead. Continue below for 6 new photos on the next object."
 export function continueAction(position: number): string {
   return `Continue to object ${position}`
 }
@@ -143,6 +131,10 @@ export const scorerReadyNote = "The photo scorer is ready. Your photos stay on t
 export const scorerLoadingNote =
   "The photo scorer checks your photos on this device. The app downloads it once."
 export const scorerFailedTitle = "The photo scorer cannot load."
+export const checkConnectionNote = "Check your connection and select Retry."
+export function errorDetails(error: string): string {
+  return ` Details: ${error}`
+}
 export const retryAction = "Retry"
 
 /** Statistics dialog. */
