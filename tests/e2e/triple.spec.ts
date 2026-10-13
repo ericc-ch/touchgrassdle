@@ -72,6 +72,10 @@ test("failing all three ends the day without naming objects early", async ({ pag
   await burnCurrentObject(page)
   await dismissStats(page)
   await page.getByRole("button", { name: "Continue to object 3", exact: true }).click()
+  await expect(page.getByRole("button", { name: /Take photo \(6 guesses left\)/ })).toBeVisible()
+  await expect(
+    page.getByRole("button", { name: "Try another object? (3/3)", exact: true }),
+  ).toBeDisabled()
 
   await burnCurrentObject(page)
   await dismissStats(page)

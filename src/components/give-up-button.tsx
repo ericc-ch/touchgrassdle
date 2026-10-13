@@ -14,7 +14,7 @@ export interface GiveUpButtonProps {
 /**
  * Two-tap object switch for the day header. The idle tap invites another
  * pick. The armed tap confirms the cost without naming the object: names
- * stay hidden until the reveal. On a dead run the tap moves on at once.
+ * stay hidden until the reveal. On a dead run the tap moves on at once. On the last object there is nowhere to move, so the link dies.
  * Arming resets when the pick changes (the parent keys on the choice
  * id). A disabled switch shows idle but keeps its armed flag.
  */
@@ -26,13 +26,14 @@ export function GiveUpButton({
   onGiveUp,
 }: GiveUpButtonProps) {
   const [armed, setArmed] = useState(false)
-  const confirm = armed && !immediate && !disabled
+  const done = position >= total
+  const confirm = armed && !immediate && !disabled && !done
   if (!confirm) {
     return (
       <Button
         aria-label={switchIdleLabel(position, total)}
         className="font-medium underline"
-        disabled={disabled}
+        disabled={disabled || done}
         onClick={() => {
           if (immediate) {
             onGiveUp()
